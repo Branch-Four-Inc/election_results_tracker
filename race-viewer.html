@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Race Results Viewer</title>
+<style>
+  :root {
+    --border: #d0d5dd;
+    --bg: #f5f6f8;
+    --accent: #1a56db;
+    --incumbent: #f59e0b;
+    --leader: #ecfdf5;
+    --leader-border: #10b981;
+  }
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    background: var(--bg);
+    color: #1f2937;
+  }
+  header {
+    background: #111827;
+    color: #fff;
+    padding: 16px 24px;
+  }
+  header h1 { margin: 0; font-size: 18px; }
+  header p { margin: 4px 0 0; font-size: 12px; color: #9ca3af; }
+
+  .toolbar {
+    max-width: 1200px;
+    margin: 16px auto 0;
+    padding: 0 20px;
+    display: flex;
+    gap: 14px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .toolbar .group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+  }
+  .toolbar label { font-size: 12px; color: #4b5563; }
+  .toolbar input[type=number] { width: 60px; border: 1px solid var(--border); border-radius: 4px; padding: 3px 6px; font-size: 12px; }
+  .toolbar input[type=file] { font-size: 12px; }
+  .toolbar button {
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .toolbar button:hover { background: #f3f4f6; }
+  .toolbar button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .toolbar button.primary:hover { background: #1743ad; }
+
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 18px;
+    align-items: start;
+  }
+
+  .race-panel {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .race-panel .head {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--border);
+    background: #f9fafb;
+  }
+  .race-panel .head .name {
+    font-size: 15px;
+    font-weight: 700;
+    margin: 0;
+  }
+  .race-panel .head .meta {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 3px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .race-panel .foot {
+    padding: 10px 16px 14px;
+    border-top: 1px solid var(--border);
+    background: #f9fafb;
+  }
+  .race-panel .foot .meta {
+    font-size: 12px;
+    color: #6b7280;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .progress-bar {
+    height: 5px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  .progress-bar > div {
+    height: 100%;
+    background: var(--accent);
+  }
+
+  table.results {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  table.results th {
+    text-align: left;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .03em;
+    color: #6b7280;
+    padding: 8px 16px 6px;
+    border-bottom: 1px solid var(--border);
+  }
+  table.results td {
+    padding: 8px 16px;
+    border-bottom: 1px solid #f0f1f3;
+    vertical-align: middle;
+  }
+  table.results tr:last-child td { border-bottom: none; }
+  table.results tr.leader td { background: var(--leader); }
+  table.results tr.leader td.name-cell { border-left: 3px solid var(--leader-border); }
+  table.results tr.other td { color: #6b7280; font-style: italic; }
+
+  .name-cell { font-weight: 600; }
+  .share-cell { text-align: right; font-variant-numeric: tabular-nums; width: 130px; }
+  .share-bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+  .share-bar {
+    flex: 1;
+    max-width: 70px;
+    height: 6px;
+    background: #eef0f3;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .share-bar > div { height: 100%; background: #9ca3af; }
+  tr.leader .share-bar > div { background: var(--leader-border); }
+  .share-pct { min-width: 46px; text-align: right; }
+
+  .empty-msg {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: #9ca3af;
+    padding: 60px 20px;
+    font-size: 14px;
+  }
+  .parse-errors {
+    max-width: 1200px;
+    margin: 10px auto 0;
+    padding: 0 20px;
+  }
+  .parse-errors .err {
+    background: #fef2f2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    margin-bottom: 6px;
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>Race Results Viewer</h1>
+  <p>Load a .jsonl file (one race per line) and render summary tables per race.</p>
+</header>
+
+<div class="toolbar">
+  <div class="group">
+    <label>Load .jsonl</label>
+    <input type="file" id="loadFile" accept=".jsonl,.json,.txt">
+  </div>
+  <div class="group">
+    <label for="maxCandidates">Max candidates shown</label>
+    <input type="number" id="maxCandidates" min="1" value="3">
+  </div>
+  <div class="group">
+    <label for="sortToggle">
+      <input type="checkbox" id="sortToggle" checked style="vertical-align:middle;">
+      Sort by vote share
+    </label>
+  </div>
+  <button class="primary" id="renderBtn">Render</button>
+  <button id="pasteBtn">Paste JSONL...</button>
+</div>
+
+<div class="parse-errors" id="parseErrors"></div>
+<main id="racesGrid">
+  <div class="empty-msg">Load a .jsonl file to see race result tables.</div>
+</main>
+
+<script>
+let raceData = [];
+
+document.getElementById("loadFile").onchange = (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    loadFromText(reader.result);
+  };
+  reader.readAsText(file);
+};
+
+document.getElementById("pasteBtn").onclick = () => {
+  const text = prompt("Paste JSONL content (one race JSON object per line):");
+  if (text !== null) loadFromText(text);
+};
+
+document.getElementById("renderBtn").onclick = () => renderAll();
+document.getElementById("maxCandidates").onchange = () => renderAll();
+document.getElementById("sortToggle").onchange = () => renderAll();
+
+function loadFromText(text) {
+  const errorsEl = document.getElementById("parseErrors");
+  errorsEl.innerHTML = "";
+  const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  const parsed = [];
+  const errors = [];
+  lines.forEach((line, idx) => {
+    try {
+      parsed.push(JSON.parse(line));
+    } catch (e) {
+      errors.push(`Line ${idx + 1}: ${e.message}`);
+    }
+  });
+  if (errors.length) {
+    errorsEl.innerHTML = errors.map(e => `<div class="err">${escapeHtml(e)}</div>`).join("");
+  }
+  raceData = parsed;
+  renderAll();
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function renderAll() {
+  const grid = document.getElementById("racesGrid");
+  grid.innerHTML = "";
+
+  if (!raceData || raceData.length === 0) {
+    grid.innerHTML = '<div class="empty-msg">Load a .jsonl file to see race result tables.</div>';
+    return;
+  }
+
+  const maxCandidates = Math.max(1, parseInt(document.getElementById("maxCandidates").value, 10) || 3);
+  const sortByShare = document.getElementById("sortToggle").checked;
+
+  raceData.forEach(race => {
+    grid.appendChild(renderRacePanel(race, maxCandidates, sortByShare));
+  });
+}
+
+function computeShare(cand) {
+  if (cand.vote_share !== null && cand.vote_share !== undefined && cand.vote_share !== "") {
+    return Number(cand.vote_share);
+  }
+  return null;
+}
+
+function renderRacePanel(race, maxCandidates, sortByShare) {
+  const panel = document.createElement("div");
+  panel.className = "race-panel";
+
+  const candidates = (race.candidates || []).map(c => ({ ...c }));
+
+  candidates.forEach(c => {
+    c._share = computeShare(c);
+    c._isIncumbent = !!c.incumbent || (!!race.incumbent && c.name === race.incumbent);
+  });
+
+  let ordered = candidates.slice();
+  if (sortByShare) {
+    ordered.sort((a, b) => (b._share ?? -Infinity) - (a._share ?? -Infinity));
+  }
+
+  const shown = ordered.slice(0, maxCandidates);
+  const rest = ordered.slice(maxCandidates);
+
+  const maxShare = Math.max(...ordered.map(c => c._share || 0), 0.0001);
+  const leaderName = ordered.length ? ordered[0].name : null;
+
+  // head
+  const head = document.createElement("div");
+  head.className = "head";
+  const nameEl = document.createElement("p");
+  nameEl.className = "name";
+  nameEl.textContent = race.race_name || "(Unnamed Race)";
+  head.appendChild(nameEl);
+  panel.appendChild(head);
+
+  // table
+  const table = document.createElement("table");
+  table.className = "results";
+  table.innerHTML = `<thead><tr>
+    <th>Candidate</th>
+    <th class="share-cell">Vote Share</th>
+  </tr></thead>`;
+
+  const tbody = document.createElement("tbody");
+
+  shown.forEach(c => {
+    const tr = document.createElement("tr");
+    if (leaderName && c.name === leaderName && c._share !== null) tr.classList.add("leader");
+
+    const nameTd = document.createElement("td");
+    nameTd.className = "name-cell";
+    nameTd.textContent = (c.name || "(Unnamed candidate)") + (c._isIncumbent ? " *" : "");
+    tr.appendChild(nameTd);
+
+    const shareTd = document.createElement("td");
+    shareTd.className = "share-cell";
+    const shareWrap = document.createElement("div");
+    shareWrap.className = "share-bar-wrap";
+    const shareBarOuter = document.createElement("div");
+    shareBarOuter.className = "share-bar";
+    const shareBarInner = document.createElement("div");
+    const pctVal = c._share === null ? 0 : c._share;
+    shareBarInner.style.width = Math.min(100, (pctVal / maxShare) * 100) + "%";
+    shareBarOuter.appendChild(shareBarInner);
+    const shareLabel = document.createElement("span");
+    shareLabel.className = "share-pct";
+    shareLabel.textContent = c._share === null ? "—" : c._share.toFixed(1) + "%";
+    shareWrap.appendChild(shareBarOuter);
+    shareWrap.appendChild(shareLabel);
+    shareTd.appendChild(shareWrap);
+    tr.appendChild(shareTd);
+
+    tbody.appendChild(tr);
+  });
+
+  if (rest.length > 0) {
+    const tr = document.createElement("tr");
+    tr.className = "other";
+
+    const otherShare = rest.reduce((sum, c) => sum + (c._share || 0), 0);
+
+    const nameTd = document.createElement("td");
+    nameTd.className = "name-cell";
+    nameTd.textContent = `Other candidates (${rest.length})`;
+    nameTd.title = rest.map(c => c.name).join(", ");
+    tr.appendChild(nameTd);
+
+    const shareTd = document.createElement("td");
+    shareTd.className = "share-cell";
+    const shareWrap = document.createElement("div");
+    shareWrap.className = "share-bar-wrap";
+    const shareBarOuter = document.createElement("div");
+    shareBarOuter.className = "share-bar";
+    const shareBarInner = document.createElement("div");
+    shareBarInner.style.width = Math.min(100, (otherShare / maxShare) * 100) + "%";
+    shareBarOuter.appendChild(shareBarInner);
+    const shareLabel = document.createElement("span");
+    shareLabel.className = "share-pct";
+    shareLabel.textContent = otherShare.toFixed(1) + "%";
+    shareWrap.appendChild(shareBarOuter);
+    shareWrap.appendChild(shareLabel);
+    shareTd.appendChild(shareWrap);
+    tr.appendChild(shareTd);
+
+    tbody.appendChild(tr);
+  }
+
+  table.appendChild(tbody);
+  panel.appendChild(table);
+
+  // footer: % counted, shown below the candidates table
+  const footer = document.createElement("div");
+  footer.className = "foot";
+  const pct = race.pct_counted === null || race.pct_counted === undefined || race.pct_counted === ""
+    ? "—"
+    : `${Number(race.pct_counted)}%`;
+  const pctLabel = document.createElement("div");
+  pctLabel.className = "meta";
+  pctLabel.innerHTML = `<span></span><span>${pct} counted</span>`;
+  footer.appendChild(pctLabel);
+
+  const bar = document.createElement("div");
+  bar.className = "progress-bar";
+  const barFill = document.createElement("div");
+  const pctNum = race.pct_counted === null || race.pct_counted === undefined || race.pct_counted === "" ? 0 : Number(race.pct_counted);
+  barFill.style.width = Math.min(100, Math.max(0, pctNum)) + "%";
+  bar.appendChild(barFill);
+  footer.appendChild(bar);
+
+  panel.appendChild(footer);
+
+  return panel;
+}
+</script>
+</body>
+</html>
