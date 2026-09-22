@@ -1,0 +1,4 @@
+race_name,incumbent,pct_counted,candidate_1_name,candidate_1_vote_share,candidate_1_incumbent,candidate_2_name,candidate_2_vote_share,candidate_2_incumbent,candidate_3_name,candidate_3_vote_share,candidate_3_incumbent,candidate_4_name,candidate_4_vote_share,candidate_4_incumbent,candidate_5_name,candidate_5_vote_share,candidate_5_incumbent
+Favorite Toy - Andy's Room,Woody,88,Woody,42.7,true,Buzz Lightyear,39.5,false,Jessie,9.8,false,Mr. Potato Head,5.1,false,Rex,2.9,false
+Favorite Toy - Bonnie's Room,Dolly,64,Dolly,34.8,true,Buzz Lightyear,28.1,false,Jessie,19.2,false,Mr. Pricklepants,10.4,false,Forky,7.5,false
+Sheriff of the Toy Box,Woody,100,Woody,67.3,true,Jessie,32.7,false,,,,,,

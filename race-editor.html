@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Race Data Editor (JSONL Generator)</title>
+<title>Race Data Editor (CSV Generator)</title>
 <style>
   :root {
     --border: #d0d5dd;
@@ -113,7 +113,7 @@
     font-weight: 600;
     font-size: 14px;
   }
-  textarea#jsonlOutput {
+  textarea#csvOutput {
     width: 100%;
     height: 220px;
     font-family: "SF Mono", Menlo, Consolas, monospace;
@@ -134,7 +134,7 @@
 <body>
 <header>
   <h1>Race Data Editor</h1>
-  <p>Build one JSON object per race (race name, candidates, incumbent, vote share, % counted) and export as JSONL.</p>
+  <p>Build one row per race (race name, candidates, incumbent, vote share, % counted) and export as CSV.</p>
 </header>
 
 <main>
@@ -150,17 +150,17 @@
   </div>
 
   <div class="panel">
-    <h2>JSONL Output</h2>
+    <h2>CSV Output</h2>
     <div class="file-controls" style="margin-bottom:10px;">
-      <button class="btn primary" id="generateBtn">Generate JSONL</button>
-      <button class="btn" id="downloadBtn">Download .jsonl</button>
+      <button class="btn primary" id="generateBtn">Generate CSV</button>
+      <button class="btn" id="downloadBtn">Download .csv</button>
       <button class="btn" id="copyBtn">Copy to clipboard</button>
       <span style="flex:1"></span>
-      <label style="margin:0; text-transform:none; font-size:12px;">Load existing .jsonl:</label>
-      <input type="file" id="loadFile" accept=".jsonl,.json,.txt">
+      <label style="margin:0; text-transform:none; font-size:12px;">Load existing .csv:</label>
+      <input type="file" id="loadFile" accept=".csv">
     </div>
-    <textarea id="jsonlOutput" placeholder="Generated JSONL will appear here..." spellcheck="false"></textarea>
-    <div class="hint">Each line is one JSON object: {"race_name","incumbent","pct_counted","candidates":[{"name","vote_share","incumbent"}]}</div>
+    <textarea id="csvOutput" placeholder="Generated CSV will appear here..." spellcheck="false"></textarea>
+    <div class="hint">Columns: race_name, incumbent, pct_counted, then repeating groups of candidate_N_name, candidate_N_vote_share, candidate_N_incumbent for each candidate slot.</div>
   </div>
 </main>
 
@@ -309,7 +309,18 @@ document.getElementById("addRaceBtn").onclick = () => {
   render();
 };
 
-function raceToObject(race) {
+/* ── CSV helpers ── */
+
+function csvEscape(value) {
+  if (value === null || value === undefined) return "";
+  const str = String(value);
+  if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+function raceToRow(race, maxCandidates) {
   const candidates = race.candidates
     .filter(c => c.name && c.name.trim() !== "")
     .map(c => ({
@@ -320,31 +331,132 @@ function raceToObject(race) {
 
   const incumbentCandidate = candidates.find(c => c.incumbent);
 
-  return {
-    race_name: race.race_name.trim(),
-    incumbent: incumbentCandidate ? incumbentCandidate.name : null,
-    pct_counted: race.pct_counted === "" ? null : Number(race.pct_counted),
-    candidates
-  };
+  const fields = [
+    race.race_name.trim(),
+    incumbentCandidate ? incumbentCandidate.name : "",
+    race.pct_counted === "" ? "" : Number(race.pct_counted)
+  ];
+
+  for (let i = 0; i < maxCandidates; i++) {
+    if (i < candidates.length) {
+      fields.push(candidates[i].name);
+      fields.push(candidates[i].vote_share === null ? "" : candidates[i].vote_share);
+      fields.push(candidates[i].incumbent ? "true" : "false");
+    } else {
+      fields.push("", "", "");
+    }
+  }
+
+  return fields.map(csvEscape).join(",");
 }
 
+function buildCsvHeader(maxCandidates) {
+  const headers = ["race_name", "incumbent", "pct_counted"];
+  for (let i = 1; i <= maxCandidates; i++) {
+    headers.push(`candidate_${i}_name`, `candidate_${i}_vote_share`, `candidate_${i}_incumbent`);
+  }
+  return headers.join(",");
+}
+
+/* ── CSV parser ── */
+
+function parseCsvRow(line) {
+  const fields = [];
+  let i = 0;
+  let field = "";
+  let inQuotes = false;
+
+  while (i < line.length) {
+    const ch = line[i];
+    if (inQuotes) {
+      if (ch === '"') {
+        if (i + 1 < line.length && line[i + 1] === '"') {
+          field += '"';
+          i += 2;
+        } else {
+          inQuotes = false;
+          i++;
+        }
+      } else {
+        field += ch;
+        i++;
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true;
+        i++;
+      } else if (ch === ',') {
+        fields.push(field);
+        field = "";
+        i++;
+      } else {
+        field += ch;
+        i++;
+      }
+    }
+  }
+  fields.push(field);
+  return fields;
+}
+
+function parseCsv(text) {
+  // Split on newlines, handling \r\n and \n, but respect quoted fields with embedded newlines
+  const rows = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (ch === '"') {
+      inQuotes = !inQuotes;
+      current += ch;
+    } else if ((ch === '\n' || ch === '\r') && !inQuotes) {
+      if (ch === '\r' && i + 1 < text.length && text[i + 1] === '\n') {
+        i++; // skip \n after \r
+      }
+      if (current.trim().length > 0) {
+        rows.push(parseCsvRow(current));
+      }
+      current = "";
+    } else {
+      current += ch;
+    }
+  }
+  if (current.trim().length > 0) {
+    rows.push(parseCsvRow(current));
+  }
+  return rows;
+}
+
+/* ── Event handlers ── */
+
 document.getElementById("generateBtn").onclick = () => {
-  const output = document.getElementById("jsonlOutput");
-  const lines = races.map(r => JSON.stringify(raceToObject(r)));
-  output.value = lines.join("\n");
+  const output = document.getElementById("csvOutput");
+
+  // Determine max candidate count across all races (count only non-empty candidates)
+  let maxCandidates = 0;
+  races.forEach(r => {
+    const validCount = r.candidates.filter(c => c.name && c.name.trim() !== "").length;
+    if (validCount > maxCandidates) maxCandidates = validCount;
+  });
+  if (maxCandidates === 0) maxCandidates = 1; // at least one candidate column group
+
+  const header = buildCsvHeader(maxCandidates);
+  const rows = races.map(r => raceToRow(r, maxCandidates));
+  output.value = [header, ...rows].join("\n");
 };
 
 document.getElementById("downloadBtn").onclick = () => {
-  const text = document.getElementById("jsonlOutput").value;
+  const text = document.getElementById("csvOutput").value;
   if (!text.trim()) {
-    alert("Nothing to download yet — click Generate JSONL first.");
+    alert("Nothing to download yet — click Generate CSV first.");
     return;
   }
-  const blob = new Blob([text], { type: "application/jsonl" });
+  const blob = new Blob([text], { type: "text/csv" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "races.jsonl";
+  a.download = "races.csv";
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -352,9 +464,9 @@ document.getElementById("downloadBtn").onclick = () => {
 };
 
 document.getElementById("copyBtn").onclick = async () => {
-  const text = document.getElementById("jsonlOutput").value;
+  const text = document.getElementById("csvOutput").value;
   if (!text.trim()) {
-    alert("Nothing to copy yet — click Generate JSONL first.");
+    alert("Nothing to copy yet — click Generate CSV first.");
     return;
   }
   try {
@@ -374,26 +486,60 @@ document.getElementById("loadFile").onchange = (e) => {
   const reader = new FileReader();
   reader.onload = () => {
     const text = reader.result;
-    document.getElementById("jsonlOutput").value = text;
+    document.getElementById("csvOutput").value = text;
     try {
-      const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
-      races = lines.map(line => {
-        const obj = JSON.parse(line);
+      const rows = parseCsv(text);
+      if (rows.length < 2) {
+        alert("CSV file appears empty or has only a header row.");
+        return;
+      }
+
+      const headerRow = rows[0];
+
+      // Determine candidate count from header columns
+      // Fixed columns: race_name, incumbent, pct_counted = 3
+      // Each candidate group: name, vote_share, incumbent = 3 columns
+      const candidateCols = headerRow.length - 3;
+      const numCandidates = Math.floor(candidateCols / 3);
+
+      races = [];
+      for (let r = 1; r < rows.length; r++) {
+        const fields = rows[r];
         raceIdCounter += 1;
-        return {
+
+        const raceName = fields[0] || "";
+        const incumbent = fields[1] || "";
+        const pctCounted = fields[2] || "";
+
+        const candidates = [];
+        for (let c = 0; c < numCandidates; c++) {
+          const baseIdx = 3 + c * 3;
+          const candName = (fields[baseIdx] || "").trim();
+          if (candName === "") continue; // skip empty candidate slots
+          const candShare = fields[baseIdx + 1] || "";
+          const candInc = (fields[baseIdx + 2] || "").toLowerCase() === "true";
+          candidates.push({
+            name: candName,
+            vote_share: candShare === "" ? "" : Number(candShare),
+            incumbent: candInc || (incumbent && candName === incumbent)
+          });
+        }
+
+        // If no candidates found, add one empty slot
+        if (candidates.length === 0) {
+          candidates.push(newCandidate());
+        }
+
+        races.push({
           id: raceIdCounter,
-          race_name: obj.race_name || "",
-          pct_counted: obj.pct_counted === null || obj.pct_counted === undefined ? "" : obj.pct_counted,
-          candidates: (obj.candidates || []).map(c => ({
-            name: c.name || "",
-            vote_share: c.vote_share === null || c.vote_share === undefined ? "" : c.vote_share,
-            incumbent: !!c.incumbent || (obj.incumbent && c.name === obj.incumbent)
-          }))
-        };
-      });
+          race_name: raceName,
+          pct_counted: pctCounted === "" ? "" : Number(pctCounted),
+          candidates
+        });
+      }
       render();
     } catch (err) {
-      alert("Could not parse file as JSONL: " + err.message);
+      alert("Could not parse file as CSV: " + err.message);
     }
   };
   reader.readAsText(file);

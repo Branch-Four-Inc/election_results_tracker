@@ -185,13 +185,13 @@
 <body>
 <header>
   <h1>Race Results Viewer</h1>
-  <p>Load a .jsonl file (one race per line) and render summary tables per race.</p>
+  <p>Load a .csv file (one race per row) and render summary tables per race.</p>
 </header>
 
 <div class="toolbar">
   <div class="group">
-    <label>Load .jsonl</label>
-    <input type="file" id="loadFile" accept=".jsonl,.json,.txt">
+    <label>Load .csv</label>
+    <input type="file" id="loadFile" accept=".csv">
   </div>
   <div class="group">
     <label for="maxCandidates">Max candidates shown</label>
@@ -204,12 +204,12 @@
     </label>
   </div>
   <button class="primary" id="renderBtn">Render</button>
-  <button id="pasteBtn">Paste JSONL...</button>
+  <button id="pasteBtn">Paste CSV...</button>
 </div>
 
 <div class="parse-errors" id="parseErrors"></div>
 <main id="racesGrid">
-  <div class="empty-msg">Load a .jsonl file to see race result tables.</div>
+  <div class="empty-msg">Load a .csv file to see race result tables.</div>
 </main>
 
 <script>
@@ -226,7 +226,7 @@ document.getElementById("loadFile").onchange = (e) => {
 };
 
 document.getElementById("pasteBtn").onclick = () => {
-  const text = prompt("Paste JSONL content (one race JSON object per line):");
+  const text = prompt("Paste CSV content (header row + one race per row):");
   if (text !== null) loadFromText(text);
 };
 
@@ -234,22 +234,161 @@ document.getElementById("renderBtn").onclick = () => renderAll();
 document.getElementById("maxCandidates").onchange = () => renderAll();
 document.getElementById("sortToggle").onchange = () => renderAll();
 
+/**
+ * Parse a single CSV line respecting quoted fields.
+ * Handles double-quote escaping ("") inside quoted fields.
+ */
+function parseCSVLine(line) {
+  const fields = [];
+  let i = 0;
+  const len = line.length;
+
+  while (i <= len) {
+    if (i === len) {
+      fields.push("");
+      break;
+    }
+
+    if (line[i] === '"') {
+      // Quoted field
+      let value = "";
+      i++; // skip opening quote
+      while (i < len) {
+        if (line[i] === '"') {
+          if (i + 1 < len && line[i + 1] === '"') {
+            // Escaped quote
+            value += '"';
+            i += 2;
+          } else {
+            // End of quoted field
+            i++; // skip closing quote
+            break;
+          }
+        } else {
+          value += line[i];
+          i++;
+        }
+      }
+      fields.push(value);
+      // Skip comma after quoted field
+      if (i < len && line[i] === ',') {
+        i++;
+      }
+    } else {
+      // Unquoted field
+      const commaIdx = line.indexOf(',', i);
+      if (commaIdx === -1) {
+        fields.push(line.substring(i));
+        break;
+      } else {
+        fields.push(line.substring(i, commaIdx));
+        i = commaIdx + 1;
+      }
+    }
+  }
+
+  return fields;
+}
+
 function loadFromText(text) {
   const errorsEl = document.getElementById("parseErrors");
   errorsEl.innerHTML = "";
-  const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
-  const parsed = [];
-  const errors = [];
-  lines.forEach((line, idx) => {
-    try {
-      parsed.push(JSON.parse(line));
-    } catch (e) {
-      errors.push(`Line ${idx + 1}: ${e.message}`);
+
+  const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
+  if (lines.length === 0) {
+    raceData = [];
+    renderAll();
+    return;
+  }
+
+  // Parse header
+  const headers = parseCSVLine(lines[0]).map(h => h.trim().toLowerCase());
+
+  // Find fixed column indices
+  const raceNameIdx = headers.indexOf("race_name");
+  const incumbentIdx = headers.indexOf("incumbent");
+  const pctCountedIdx = headers.indexOf("pct_counted");
+
+  if (raceNameIdx === -1) {
+    errorsEl.innerHTML = '<div class="err">CSV header missing required column: race_name</div>';
+    raceData = [];
+    renderAll();
+    return;
+  }
+
+  // Discover candidate column groups: candidate_N_name, candidate_N_vote_share, candidate_N_incumbent
+  const candidateGroups = []; // array of {nameIdx, voteShareIdx, incumbentIdx}
+  const candidateNums = new Set();
+  headers.forEach((h) => {
+    const match = h.match(/^candidate_(\d+)_name$/);
+    if (match) candidateNums.add(parseInt(match[1], 10));
+  });
+
+  const sortedNums = Array.from(candidateNums).sort((a, b) => a - b);
+  sortedNums.forEach(n => {
+    const nameCol = headers.indexOf(`candidate_${n}_name`);
+    const shareCol = headers.indexOf(`candidate_${n}_vote_share`);
+    const incCol = headers.indexOf(`candidate_${n}_incumbent`);
+    if (nameCol !== -1) {
+      candidateGroups.push({
+        nameIdx: nameCol,
+        voteShareIdx: shareCol,
+        incumbentIdx: incCol
+      });
     }
   });
+
+  // Parse data rows
+  const parsed = [];
+  const errors = [];
+
+  for (let i = 1; i < lines.length; i++) {
+    try {
+      const fields = parseCSVLine(lines[i]);
+
+      if (fields.length < headers.length) {
+        errors.push(`Row ${i + 1}: Expected ${headers.length} columns but got ${fields.length}`);
+        continue;
+      }
+
+      const race = {
+        race_name: fields[raceNameIdx] || "",
+        incumbent: incumbentIdx !== -1 ? (fields[incumbentIdx] || "") : "",
+        pct_counted: pctCountedIdx !== -1 ? (fields[pctCountedIdx] || "") : "",
+        candidates: []
+      };
+
+      // Convert pct_counted to number if possible
+      if (race.pct_counted !== "" && !isNaN(Number(race.pct_counted))) {
+        race.pct_counted = Number(race.pct_counted);
+      }
+
+      candidateGroups.forEach(group => {
+        const name = group.nameIdx !== -1 && group.nameIdx < fields.length ? fields[group.nameIdx] : "";
+        if (!name) return; // skip empty candidate slots
+
+        const voteShareRaw = group.voteShareIdx !== -1 && group.voteShareIdx < fields.length ? fields[group.voteShareIdx] : "";
+        const incumbentRaw = group.incumbentIdx !== -1 && group.incumbentIdx < fields.length ? fields[group.incumbentIdx] : "";
+
+        const candidate = {
+          name: name,
+          vote_share: voteShareRaw !== "" && !isNaN(Number(voteShareRaw)) ? Number(voteShareRaw) : voteShareRaw,
+          incumbent: incumbentRaw.toLowerCase() === "true"
+        };
+
+        race.candidates.push(candidate);
+      });
+
+      parsed.push(race);
+    } catch (e) {
+      errors.push(`Row ${i + 1}: ${e.message}`);
+    }
+  }
+
   if (errors.length) {
     errorsEl.innerHTML = errors.map(e => `<div class="err">${escapeHtml(e)}</div>`).join("");
   }
+
   raceData = parsed;
   renderAll();
 }
@@ -267,7 +406,7 @@ function renderAll() {
   grid.innerHTML = "";
 
   if (!raceData || raceData.length === 0) {
-    grid.innerHTML = '<div class="empty-msg">Load a .jsonl file to see race result tables.</div>';
+    grid.innerHTML = '<div class="empty-msg">Load a .csv file to see race result tables.</div>';
     return;
   }
 

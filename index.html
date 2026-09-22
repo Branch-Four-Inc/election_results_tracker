@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Election Results Tracker</title>
+<style>
+  body {
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    background: #f5f6f8;
+    color: #1f2937;
+  }
+  header {
+    background: #111827;
+    color: #fff;
+    padding: 16px 24px;
+  }
+  header h1 { margin: 0; font-size: 18px; }
+  header p { margin: 4px 0 0; font-size: 12px; color: #9ca3af; }
+  main {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 20px;
+  }
+  .card {
+    display: block;
+    background: #fff;
+    border: 1px solid #d0d5dd;
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 16px;
+    text-decoration: none;
+    color: #1f2937;
+  }
+  .card:hover { background: #f9fafb; }
+  .card h2 { margin: 0 0 6px; font-size: 16px; color: #1a56db; }
+  .card p { margin: 0; font-size: 13px; color: #6b7280; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Election Results Tracker</h1>
+  <p>Create and view race result data using CSV files.</p>
+</header>
+<main>
+  <a class="card" href="race-editor.html">
+    <h2>Race Data Editor &rarr;</h2>
+    <p>Build race and candidate data, then generate and download a CSV file.</p>
+  </a>
+  <a class="card" href="race-viewer.html">
+    <h2>Race Results Viewer &rarr;</h2>
+    <p>Load a CSV file to render summary result tables for each race.</p>
+  </a>
+</main>
+</body>
+</html>
