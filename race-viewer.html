@@ -180,6 +180,58 @@
     font-size: 12px;
     margin-bottom: 6px;
   }
+
+  body.embed-mode header,
+  body.embed-mode .toolbar { display: none; }
+  body.embed-mode main { padding: 12px; }
+
+  .embed-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(17, 24, 39, 0.5);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .embed-modal-overlay.open { display: flex; }
+  .embed-modal {
+    background: #fff;
+    border-radius: 10px;
+    padding: 20px 22px;
+    width: 560px;
+    max-width: 92vw;
+    max-height: 85vh;
+    overflow: auto;
+  }
+  .embed-modal h3 { margin: 0 0 6px; font-size: 15px; }
+  .embed-modal p { margin: 0 0 10px; font-size: 12px; color: #6b7280; }
+  .embed-modal label { font-size: 11px; text-transform: uppercase; color: #6b7280; display: block; margin: 10px 0 4px; }
+  .embed-modal input[type=text] {
+    width: 100%; box-sizing: border-box; padding: 6px 8px;
+    border: 1px solid var(--border); border-radius: 5px; font-size: 13px;
+  }
+  .embed-modal textarea {
+    width: 100%; box-sizing: border-box; height: 110px;
+    font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 12px;
+    border: 1px solid var(--border); border-radius: 6px; padding: 8px;
+    white-space: pre; resize: vertical;
+  }
+  .embed-modal .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+  .embed-tabs { display: flex; gap: 6px; margin-bottom: 4px; }
+  .embed-tabs button {
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #fff;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+  }
+  .embed-tabs button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .embed-panel { display: none; }
+  .embed-panel.active { display: block; }
+  .embed-modal .size-warning { font-size: 11px; color: #b45309; margin-top: 4px; display: none; }
+  .embed-modal .size-warning.show { display: block; }
 </style>
 </head>
 <body>
@@ -205,6 +257,7 @@
   </div>
   <button class="primary" id="renderBtn">Render</button>
   <button id="pasteBtn">Paste CSV...</button>
+  <button id="embedBtn">Embed...</button>
 </div>
 
 <div class="parse-errors" id="parseErrors"></div>
@@ -212,8 +265,44 @@
   <div class="empty-msg">Load a .csv file to see race result tables.</div>
 </main>
 
+<div class="embed-modal-overlay" id="embedModalOverlay">
+  <div class="embed-modal">
+    <h3>Embed this view</h3>
+    <div class="embed-tabs">
+      <button type="button" id="embedTabUrl" class="active">Link to hosted CSV</button>
+      <button type="button" id="embedTabData">Embed CSV data directly</button>
+    </div>
+
+    <div class="embed-panel active" id="embedPanelUrl">
+      <p>Host your CSV somewhere publicly reachable (e.g. a GitHub raw URL or the same site), enter its URL below, and copy the generated snippet. The embed fetches the CSV at load time, so it stays up to date — but the host must allow cross-origin requests (CORS).</p>
+      <label for="embedCsvUrl">CSV URL</label>
+      <input type="text" id="embedCsvUrl" placeholder="https://example.com/sample-races.csv">
+    </div>
+
+    <div class="embed-panel" id="embedPanelData">
+      <p>Encodes the CSV data directly into the embed URL — no hosting or CORS needed. The tradeoff: the snippet is only as fresh as when you generate it, and gets long for large datasets.</p>
+      <label for="embedDataSource">CSV data to embed</label>
+      <textarea id="embedDataSource" placeholder="Paste CSV here, or click 'Use currently loaded data' below"></textarea>
+      <div class="actions" style="justify-content:flex-start; margin-top:6px;">
+        <button type="button" id="embedUseLoadedBtn">Use currently loaded data</button>
+      </div>
+      <div class="size-warning" id="embedSizeWarning"></div>
+    </div>
+
+    <label for="embedMaxCandidates">Max candidates shown</label>
+    <input type="text" id="embedMaxCandidates" value="3">
+    <label for="embedSnippet">Embed HTML</label>
+    <textarea id="embedSnippet" readonly spellcheck="false"></textarea>
+    <div class="actions">
+      <button id="embedCopyBtn">Copy snippet</button>
+      <button class="primary" id="embedCloseBtn">Close</button>
+    </div>
+  </div>
+</div>
+
 <script>
 let raceData = [];
+let rawCsvText = "";
 
 document.getElementById("loadFile").onchange = (e) => {
   const file = e.target.files[0];
@@ -233,6 +322,177 @@ document.getElementById("pasteBtn").onclick = () => {
 document.getElementById("renderBtn").onclick = () => renderAll();
 document.getElementById("maxCandidates").onchange = () => renderAll();
 document.getElementById("sortToggle").onchange = () => renderAll();
+
+// ---- Embed support ----
+
+let embedMode = "url"; // "url" | "data"
+
+function buildEmbedUrl(maxCandidates) {
+  const base = new URL("race-viewer.html", window.location.href);
+  base.searchParams.set("embed", "1");
+  if (maxCandidates) base.searchParams.set("max", maxCandidates);
+
+  if (embedMode === "data") {
+    const csvText = document.getElementById("embedDataSource").value;
+    base.searchParams.set("data", encodeCsvForUrl(csvText));
+  } else {
+    const csvUrl = document.getElementById("embedCsvUrl").value.trim();
+    base.searchParams.set("src", csvUrl);
+  }
+  return base.toString();
+}
+
+// Base64url-encode UTF-8 text so it's safe to embed as a single URL query param.
+function encodeCsvForUrl(text) {
+  const bytes = new TextEncoder().encode(text);
+  let binary = "";
+  bytes.forEach(b => { binary += String.fromCharCode(b); });
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function decodeCsvFromUrl(encoded) {
+  const b64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function updateEmbedSnippet() {
+  const maxCandidates = document.getElementById("embedMaxCandidates").value.trim() || "3";
+  const snippetEl = document.getElementById("embedSnippet");
+  const warningEl = document.getElementById("embedSizeWarning");
+
+  if (embedMode === "data") {
+    const csvText = document.getElementById("embedDataSource").value;
+    if (!csvText.trim()) {
+      snippetEl.value = "";
+      warningEl.classList.remove("show");
+      return;
+    }
+    const embedUrl = buildEmbedUrl(maxCandidates);
+    snippetEl.value = `<iframe src="${embedUrl}" width="100%" height="600" style="border:1px solid #d0d5dd;border-radius:8px;" loading="lazy"></iframe>`;
+    if (embedUrl.length > 8000) {
+      warningEl.textContent = `Warning: this URL is ${embedUrl.length.toLocaleString()} characters. Some servers/proxies reject URLs beyond ~8000 characters — consider hosting the CSV and using "Link to hosted CSV" instead.`;
+      warningEl.classList.add("show");
+    } else if (embedUrl.length > 2000) {
+      warningEl.textContent = `Note: this URL is ${embedUrl.length.toLocaleString()} characters. This works fine as an <iframe> src, but is too long to share as a plain link in some contexts.`;
+      warningEl.classList.add("show");
+    } else {
+      warningEl.classList.remove("show");
+    }
+  } else {
+    const csvUrl = document.getElementById("embedCsvUrl").value.trim();
+    warningEl.classList.remove("show");
+    if (!csvUrl) {
+      snippetEl.value = "";
+      return;
+    }
+    const embedUrl = buildEmbedUrl(maxCandidates);
+    snippetEl.value = `<iframe src="${embedUrl}" width="100%" height="600" style="border:1px solid #d0d5dd;border-radius:8px;" loading="lazy"></iframe>`;
+  }
+}
+
+function setEmbedMode(mode) {
+  embedMode = mode;
+  document.getElementById("embedTabUrl").classList.toggle("active", mode === "url");
+  document.getElementById("embedTabData").classList.toggle("active", mode === "data");
+  document.getElementById("embedPanelUrl").classList.toggle("active", mode === "url");
+  document.getElementById("embedPanelData").classList.toggle("active", mode === "data");
+  updateEmbedSnippet();
+}
+
+document.getElementById("embedTabUrl").onclick = () => setEmbedMode("url");
+document.getElementById("embedTabData").onclick = () => setEmbedMode("data");
+
+document.getElementById("embedUseLoadedBtn").onclick = () => {
+  if (!rawCsvText.trim()) {
+    alert("No CSV is currently loaded. Load or paste a CSV first, or type/paste data directly into this box.");
+    return;
+  }
+  document.getElementById("embedDataSource").value = rawCsvText;
+  updateEmbedSnippet();
+};
+
+document.getElementById("embedBtn").onclick = () => {
+  document.getElementById("embedModalOverlay").classList.add("open");
+  setEmbedMode(embedMode);
+};
+document.getElementById("embedCloseBtn").onclick = () => {
+  document.getElementById("embedModalOverlay").classList.remove("open");
+};
+document.getElementById("embedModalOverlay").onclick = (e) => {
+  if (e.target.id === "embedModalOverlay") {
+    document.getElementById("embedModalOverlay").classList.remove("open");
+  }
+};
+document.getElementById("embedCsvUrl").oninput = updateEmbedSnippet;
+document.getElementById("embedDataSource").oninput = updateEmbedSnippet;
+document.getElementById("embedMaxCandidates").oninput = updateEmbedSnippet;
+document.getElementById("embedCopyBtn").onclick = async () => {
+  const text = document.getElementById("embedSnippet").value;
+  if (!text) {
+    alert(embedMode === "data" ? "Paste or load CSV data first." : "Enter a CSV URL first.");
+    return;
+  }
+  try {
+    await navigator.clipboard.writeText(text);
+    const btn = document.getElementById("embedCopyBtn");
+    const old = btn.textContent;
+    btn.textContent = "Copied!";
+    setTimeout(() => { btn.textContent = old; }, 1200);
+  } catch (e) {
+    alert("Could not copy automatically. Please select and copy manually.");
+  }
+};
+
+// ---- Embed mode bootstrap ----
+// When loaded as ?embed=1&src=<csv-url> or ?embed=1&data=<encoded-csv>,
+// hide the toolbar/chrome and auto-load the CSV so this page can run inside an <iframe>.
+(function initEmbedMode() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get("embed") !== "1") return;
+
+  document.body.classList.add("embed-mode");
+
+  const maxParam = params.get("max");
+  if (maxParam) document.getElementById("maxCandidates").value = maxParam;
+
+  const sortParam = params.get("sort");
+  if (sortParam === "0" || sortParam === "false") {
+    document.getElementById("sortToggle").checked = false;
+  }
+
+  const dataParam = params.get("data");
+  if (dataParam) {
+    try {
+      const text = decodeCsvFromUrl(dataParam);
+      loadFromText(text);
+    } catch (err) {
+      document.getElementById("racesGrid").innerHTML =
+        `<div class="empty-msg">Could not decode embedded CSV data: ${escapeHtml(err.message)}</div>`;
+    }
+    return;
+  }
+
+  const src = params.get("src");
+  if (!src) {
+    document.getElementById("racesGrid").innerHTML =
+      '<div class="empty-msg">Missing "src" or "data" parameter with CSV content.</div>';
+    return;
+  }
+
+  fetch(src)
+    .then(res => {
+      if (!res.ok) throw new Error(`Failed to fetch CSV (${res.status})`);
+      return res.text();
+    })
+    .then(text => loadFromText(text))
+    .catch(err => {
+      document.getElementById("racesGrid").innerHTML =
+        `<div class="empty-msg">Could not load CSV: ${escapeHtml(err.message)}. This is often caused by the CSV host not allowing cross-origin requests (CORS). Consider using the "Embed CSV data directly" option instead.</div>`;
+    });
+})();
 
 /**
  * Parse a single CSV line respecting quoted fields.
@@ -293,6 +553,7 @@ function parseCSVLine(line) {
 function loadFromText(text) {
   const errorsEl = document.getElementById("parseErrors");
   errorsEl.innerHTML = "";
+  rawCsvText = text;
 
   const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0);
   if (lines.length === 0) {
