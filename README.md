@@ -1,23 +1,25 @@
 # Election Results Tracker
 
-Static, client-side tools for building and viewing election race result data as CSV.
+Static, client-side tool for building election race result data and generating self-contained embed links — no server, build step, or dependencies needed.
 
-- `race-editor.html` — build races/candidates in a form UI and export/import a CSV file.
-- `race-viewer.html` — load a CSV file and render per-race result tables.
+## Files
+
+- `index.html` — the main app: enter race/candidate data in a form, see a live preview, import from a previously generated embed link, and export a new embed snippet.
+- `race-viewer.html` — lightweight renderer used inside `<iframe>` embeds. Decodes race data from the URL and displays result tables. Not meant to be opened directly.
 - `sample-races.csv` — example data set.
-- `index.html` — landing page linking to the editor and viewer.
+- `test-embed.html` — test page with lorem ipsum and a sample embed for checking layout behavior.
 
 No build step, server, or dependencies — everything runs in the browser via vanilla JS.
 
 ## Run locally
 
-Open the files directly:
+Open the file directly:
 
 ```bash
 open index.html
 ```
 
-Or serve them (useful to avoid any `file://` quirks):
+Or serve the directory (useful to avoid `file://` quirks):
 
 ```bash
 python3 -m http.server 8000
@@ -25,12 +27,11 @@ python3 -m http.server 8000
 
 Then visit `http://localhost:8000`.
 
-## Embedding the viewer
+## How it works
 
-`race-viewer.html` can run inside an `<iframe>` on another page. Click **Embed...** and choose one of two modes:
+1. **Import existing data** — paste a previously generated embed link (or just its `data=` value) into the Import box to load races back into the form.
+2. **Enter data from scratch** — click "+ Add Race", fill in race names, candidates, vote shares, and % counted.
+3. **Preview live** — the right-hand panel updates as you type so you can see exactly how the results will render.
+4. **Export an embed link** — copy the generated `<iframe>` snippet from the Embed Link panel and paste it into any page. The race data is base64url-encoded directly into the URL (`race-viewer.html?embed=1&data=<encoded>&max=3`), so the embed is entirely self-contained — no CSV file, hosting, or CORS needed.
 
-**Link to hosted CSV** — enter a publicly reachable CSV URL (e.g. a GitHub raw URL). The embed fetches the CSV at load time via `fetch`, so results stay live as the source file changes. The CSV host must allow cross-origin requests (CORS); same-origin hosting works without extra config. The embed URL looks like `race-viewer.html?embed=1&src=<csv-url>&max=3`.
-
-**Embed CSV data directly** — no hosting or CORS needed. The CSV content is base64url-encoded directly into the embed URL (`race-viewer.html?embed=1&data=<encoded-csv>&max=3`), so the iframe never makes a network request for the data. Use "Use currently loaded data" to pull in whatever CSV is currently open in the editor/viewer, or paste CSV directly. Tradeoff: the embed is frozen at generation time (re-generate the snippet to update it), and the URL grows with the dataset size — the dialog warns if the resulting URL gets long enough to cause issues in some servers/proxies (roughly >8000 characters).
-
-In embed mode the toolbar/header are hidden either way.
+Since the data lives entirely in the URL, the embed is frozen at generation time. Re-generate and re-share the snippet after making changes. The panel warns if the URL gets long enough to risk truncation by some servers/proxies (roughly >8 000 characters).
