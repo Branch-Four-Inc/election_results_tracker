@@ -3,316 +3,138 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Election Results Tracker</title>
+<title>Election Results Widget – Step 1: Enter results</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="brand.css">
 <style>
-  :root {
-    --border: #d0d5dd;
-    --bg: #f5f6f8;
-    --accent: #1a56db;
-    --leader: #ecfdf5;
-    --leader-border: #10b981;
-  }
-  body {
-    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    margin: 0;
-    background: var(--bg);
-    color: #1f2937;
-  }
-  header {
-    background: #111827;
-    color: #fff;
-    padding: 16px 24px;
-  }
-  header h1 { margin: 0; font-size: 18px; }
-  header p { margin: 4px 0 0; font-size: 12px; color: #9ca3af; }
+  main { max-width: 1400px; margin: 28px auto 0; padding: 0 24px; display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } .side { order: 2; } }
+  body { padding-bottom: 96px; }
 
-  .instructions {
-    max-width: 1400px;
-    margin: 16px auto 0;
-    padding: 0 20px;
-  }
-  .instructions-box {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 12px 18px;
-    font-size: 13px;
-    color: #4b5563;
-    line-height: 1.5;
-  }
-  .instructions-box strong { color: #1f2937; }
-  .instructions-box ol { margin: 6px 0 0; padding-left: 18px; }
-  .instructions-box li { margin-bottom: 4px; }
+  .race-card { border: 1px solid #d9dde2; border-radius: 14px; padding: 18px 20px; margin-bottom: 16px; background: #fff; }
+  .race-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; gap: 8px; }
+  .race-card-header .title { font-family: var(--serif); font-weight: 400; font-size: 19px; }
+  .race-form-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  @media (max-width: 700px) { .race-form-grid { grid-template-columns: 1fr; } }
+  .panel h2 { font-size: 34px; }
+  .panel .lead { font-size: 11px; }
+  .step-badge { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .step-badge .n { width: 34px; height: 34px; border-radius: 50%; background: var(--navy); color: #fff; font-family: var(--serif); font-weight: 400; display: inline-flex; align-items: center; justify-content: center; }
+  .step-badge .eyebrow { margin: 0; }
+  .step-badge .eyebrow::before { display: none; }
+  .auto-note { font-size: 11px; color: var(--ink-soft); margin: -6px 0 16px; }
 
-  main {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 20px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    align-items: start;
-  }
-  @media (max-width: 1000px) {
-    main { grid-template-columns: 1fr; }
-  }
+  table.candidates { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; margin-bottom: 12px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  table.candidates th { background: #eceef1; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-soft); padding: 8px 10px; text-align: left; }
+  table.candidates td { border-top: 1px solid var(--line); padding: 2px; background: #fff; }
+  table.candidates td input[type=text], table.candidates td input[type=number] { border: none; padding: 10px 8px; background: transparent; border-radius: 0; }
+  table.candidates td input:focus { background: #f5f9ff; }
+  table.candidates td.center { text-align: center; }
+  table.candidates td.center input { width: 18px; height: 18px; accent-color: var(--navy); }
 
-  .panel {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 16px 20px;
-  }
-  .panel h2 {
-    font-size: 15px;
-    margin: 0 0 12px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-  }
-  .col-left, .col-right { display: flex; flex-direction: column; gap: 20px; }
-  .col-right { position: sticky; top: 20px; }
+  .options-stack { display: flex; flex-direction: column; gap: 16px; }
+  .options-grid { display: flex; gap: 28px; flex-wrap: wrap; align-items: flex-end; }
+  .options-grid .opt { min-width: 200px; }
+  .options-grid .check { display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 400; margin: 0; padding-bottom: 10px; }
+  .options-grid .check input { width: 18px; height: 18px; accent-color: var(--navy); }
 
-  .race-form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-bottom: 12px;
-  }
-  label {
-    font-size: 11px;
-    text-transform: uppercase;
-    letter-spacing: .03em;
-    color: #6b7280;
-    display: block;
-    margin-bottom: 3px;
-  }
-  input[type=text], input[type=number] {
-    width: 100%;
-    padding: 6px 8px;
-    border: 1px solid var(--border);
-    border-radius: 5px;
-    font-size: 13px;
-    box-sizing: border-box;
-  }
-  table.candidates {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 13px;
-    margin-bottom: 10px;
-  }
-  table.candidates th, table.candidates td {
-    border: 1px solid var(--border);
-    padding: 6px 8px;
-    text-align: left;
-  }
-  table.candidates th { background: #f3f4f6; font-size: 11px; text-transform: uppercase; color: #6b7280; }
-  table.candidates td input { border: none; width: 100%; padding: 4px; font-size: 13px; background: transparent; }
-  table.candidates td input:focus { outline: 1px solid var(--accent); background: #fff; }
-  table.candidates td.incumbent-cell { text-align: center; }
-  .btn {
-    cursor: pointer;
-    border: 1px solid var(--border);
-    background: #fff;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 12px;
-    color: #1f2937;
-  }
-  .btn:hover { background: #f3f4f6; }
-  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .btn.primary:hover { background: #1743ad; }
-  .btn.danger { color: #b91c1c; border-color: #fca5a5; }
-  .btn.danger:hover { background: #fef2f2; }
-  .row-actions { display: flex; gap: 8px; margin-bottom: 8px; }
-  .race-card {
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    padding: 14px 16px;
-    margin-bottom: 14px;
-    background: #fafbfc;
-    position: relative;
-  }
-  .race-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    margin-bottom: 10px;
-  }
-  .race-card-header .title { font-weight: 600; font-size: 14px; }
-  .pct-input { max-width: 90px; }
-  .empty-state { color: #9ca3af; font-size: 13px; padding: 20px; text-align: center; }
+  .side .panel { padding: 20px 22px; }
+  .side details { background: var(--tint); border-radius: 16px; padding: 16px 18px; }
+  .side summary { cursor: pointer; font-family: var(--serif); font-weight: 400; font-size: 17px; }
+  .side details p { font-size: 12px; color: var(--ink-soft); }
+  .side textarea { height: 110px; font-size: 11px; resize: vertical; }
+  .import-status { font-size: 12px; margin-top: 10px; font-weight: 500; }
+  .import-status.error { color: var(--error); }
+  .import-status.success { color: var(--ok); }
 
-  /* Preview (reuses race-viewer visual style) */
-  #previewGrid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 14px;
+  .action-bar {
+    position: fixed; left: 0; right: 0; bottom: 0; background: rgba(255,255,255,.96); backdrop-filter: blur(6px);
+    border-top: 1px solid var(--line); padding: 14px 24px; display: flex; justify-content: flex-end; align-items: center; gap: 16px; flex-wrap: wrap; z-index: 20;
   }
-  .race-panel {
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    overflow: hidden;
-  }
-  .race-panel .head { padding: 12px 16px; border-bottom: 1px solid var(--border); background: #f9fafb; }
-  .race-panel .head .name { font-size: 15px; font-weight: 700; margin: 0; }
-  .race-panel .foot { padding: 10px 16px 14px; border-top: 1px solid var(--border); background: #f9fafb; }
-  .race-panel .foot .meta { font-size: 12px; color: #6b7280; display: flex; justify-content: flex-end; }
-  .progress-bar { height: 5px; background: #e5e7eb; border-radius: 3px; overflow: hidden; margin-top: 6px; }
-  .progress-bar > div { height: 100%; background: var(--accent); }
-  table.results { width: 100%; border-collapse: collapse; font-size: 13px; }
-  table.results th {
-    text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: .03em;
-    color: #6b7280; padding: 8px 16px 6px; border-bottom: 1px solid var(--border);
-  }
-  table.results td { padding: 8px 16px; border-bottom: 1px solid #f0f1f3; vertical-align: middle; }
-  table.results tr:last-child td { border-bottom: none; }
-  table.results tr.leader td { background: var(--leader); }
-  table.results tr.leader td.name-cell { border-left: 3px solid var(--leader-border); }
-  table.results tr.other td { color: #6b7280; font-style: italic; }
-  .name-cell { font-weight: 600; }
-  .share-cell { text-align: right; font-variant-numeric: tabular-nums; width: 130px; }
-  .share-bar-wrap { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
-  .share-bar { flex: 1; max-width: 70px; height: 6px; background: #eef0f3; border-radius: 3px; overflow: hidden; }
-  .share-bar > div { height: 100%; background: #9ca3af; }
-  tr.leader .share-bar > div { background: var(--leader-border); }
-  .share-pct { min-width: 46px; text-align: right; }
-  .preview-toolbar { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
-  .preview-toolbar .group {
-    display: flex; align-items: center; gap: 6px; background: #f9fafb;
-    border: 1px solid var(--border); border-radius: 6px; padding: 5px 10px;
-  }
-  .preview-toolbar label { margin: 0; font-size: 12px; color: #4b5563; text-transform: none; }
-  .preview-toolbar input[type=number] { width: 56px; }
-
-  /* Embed panel */
-  textarea#embedSnippet, textarea#importInput {
-    width: 100%;
-    height: 90px;
-    font-family: "SF Mono", Menlo, Consolas, monospace;
-    font-size: 12px;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 10px;
-    box-sizing: border-box;
-    white-space: pre;
-    resize: vertical;
-  }
-  .hint { font-size: 11px; color: #6b7280; margin-top: 4px; }
-  .size-warning { font-size: 11px; color: #b45309; margin-top: 6px; display: none; }
-  .size-warning.show { display: block; }
-  .import-row { display: flex; gap: 8px; align-items: flex-start; margin-top: 6px; }
-  .import-row textarea { flex: 1; }
-  .import-status { font-size: 12px; margin-top: 6px; }
-  .import-status.error { color: #b91c1c; }
-  .import-status.success { color: #067647; }
+  .action-bar .hint { margin-right: auto; font-size: 11.5px; color: var(--ink-soft); }
+  .action-bar .msg { font-size: 12px; color: var(--error); font-weight: 500; }
 </style>
 </head>
 <body>
-<header>
-  <h1>Election Results Tracker</h1>
-  <p>Create race result data, preview it live, and generate a self-contained embed link.</p>
-</header>
-
-<div class="instructions">
-  <div class="instructions-box">
-    <strong>Getting started</strong>
-    <ol>
-      <li><strong>Import existing data</strong> — paste a previously generated embed link (or just its <code>data=</code> value) into the Import box to load races back into the form.</li>
-      <li><strong>Enter data from scratch</strong> — click "+ Add Race", fill in race names and candidates, and adjust vote shares and % counted as results come in.</li>
-      <li><strong>Preview live</strong> — the right-hand panel updates as you type so you can see exactly how the results will look.</li>
-      <li><strong>Export an embed link</strong> — copy the generated <code>&lt;iframe&gt;</code> snippet from the Embed Link panel and paste it into any page. The data is encoded directly in the URL — no CSV file, hosting, or server needed.</li>
-    </ol>
-  </div>
-</div>
+<ol class="stepper" aria-label="Progress">
+  <li class="step active" aria-current="step"><span class="num">1</span><div><div class="st-title">Enter results</div><div class="st-desc">Type in races and candidates</div></div></li>
+  <li class="step " id="step2Pill"><span class="num">2</span><div><div class="st-title">Preview</div><div class="st-desc">Check how it looks</div></div></li>
+  <li class="step " id="step3Pill"><span class="num">3</span><div><div class="st-title">Get embed code</div><div class="st-desc">Copy &amp; paste into your site</div></div></li>
+</ol>
 
 <main>
-  <div class="col-left">
+  <section>
     <div class="panel">
-      <h2>
-        Import
-      </h2>
-      <p class="hint" style="margin-top:0;">Paste an existing embed link (or just its <code>data=</code> value) to load its races back into the form below.</p>
-      <div class="import-row">
-        <textarea id="importInput" placeholder='Paste embed link, e.g. race-viewer.html?embed=1&amp;data=...'></textarea>
-        <button class="btn primary" id="importBtn">Import</button>
-      </div>
-      <div class="import-status" id="importStatus"></div>
-    </div>
-
-    <div class="panel">
-      <h2>
-        Races
-        <span>
-          <button class="btn primary" id="addRaceBtn">+ Add Race</button>
-        </span>
-      </h2>
+      <div class="step-badge"><span class="n">1</span><span class="eyebrow">Enter results</span></div>
+      <h2>Enter election results</h2>
+      <p class="lead">Add each race you want to show, with its candidates and their share of the vote. When you're done, click <strong>Preview my widget</strong> at the bottom.</p>
+      <p class="auto-note">Tip: Enter the Number of Votes Counted and Votes for each candidate, and the Candidates' Vote Share (%) populates automatically.</p>
       <div id="racesContainer"></div>
-      <div class="empty-state" id="emptyState">No races yet. Click "+ Add Race" to start.</div>
+      <button class="btn secondary" id="addRaceBtn" style="display:block; margin-left:auto;">+ Add another race</button>
     </div>
-  </div>
 
-  <div class="col-right">
+  </section>
+
+  <aside class="side">
     <div class="panel">
-      <h2>Live Preview</h2>
-      <div class="preview-toolbar">
-        <div class="group">
-          <label for="maxCandidates">Max candidates shown</label>
+      <div class="eyebrow">Optional</div>
+      <h2>Display options</h2>
+      <div class="options-stack">
+        <div class="opt">
+          <label for="maxCandidates">Candidates to list per race</label>
           <input type="number" id="maxCandidates" min="1" value="3">
+          <div class="lead" style="margin:4px 0 0;font-size:11px;">Any others are combined into one "Other candidates" row.</div>
         </div>
-        <div class="group">
-          <label for="sortToggle">
-            <input type="checkbox" id="sortToggle" checked style="vertical-align:middle;">
-            Sort by vote share
-          </label>
-        </div>
-      </div>
-      <div id="previewGrid">
-        <div class="empty-state">Add a race to see a live preview.</div>
+        <label class="check"><input type="checkbox" id="sortToggle" checked> Put the leader first (sort by vote share)</label>
       </div>
     </div>
-
-    <div class="panel">
-      <h2>Embed Link</h2>
-      <p class="hint" style="margin-top:0;">Generates a self-contained link to <code>race-viewer.html</code> with your race data encoded directly in the URL. No hosting, no CSV file, no CORS — just copy the snippet below into another page.</p>
-      <textarea id="embedSnippet" readonly spellcheck="false" placeholder="Add at least one race to generate an embed link..."></textarea>
-      <div class="row-actions" style="margin-top:8px;">
-        <button class="btn" id="embedCopySnippetBtn">Copy embed HTML</button>
-        <button class="btn" id="embedCopyLinkBtn">Copy link only</button>
-      </div>
-      <div class="size-warning" id="sizeWarning"></div>
-    </div>
-  </div>
+    <details id="importDetails">
+      <summary>Already made a widget? Edit it</summary>
+      <p>Paste the embed code or link you got earlier and we'll load its results back into the form.</p>
+      <label for="importInput" class="sr-only" style="position:absolute;left:-9999px;">Existing embed code or link</label>
+      <textarea id="importInput" placeholder="Paste your embed code or link here"></textarea>
+      <div style="margin-top:8px;"><button class="btn primary" id="importBtn">Load into form</button></div>
+      <div class="import-status" id="importStatus" role="status"></div>
+    </details>
+  </aside>
 </main>
 
+<div class="action-bar">
+  <span class="hint">Next: you will see a preview before getting your code.</span>
+  <span class="msg" id="formMsg" role="alert"></span>
+  <button class="btn primary big" id="previewBtn">Preview my widget →</button>
+</div>
+
+<script src="shared.js"></script>
 <script>
-/* ───────────────────────── State ───────────────────────── */
-
 let races = [];
-let raceIdCounter = 0;
 
-function newRace() {
-  raceIdCounter += 1;
-  return {
-    id: raceIdCounter,
-    race_name: "",
-    pct_counted: "",
-    candidates: [newCandidate()]
-  };
+/* ───────────── Form rendering ───────────── */
+
+function makeField(labelText, id, value, onChange, type, placeholder, invalid) {
+  const wrap = document.createElement("div");
+  const label = document.createElement("label");
+  label.textContent = labelText;
+  label.htmlFor = id;
+  wrap.appendChild(label);
+  const input = document.createElement("input");
+  input.id = id;
+  input.type = type || "text";
+  input.value = value;
+  if (type === "number") { input.step = "0.1"; input.min = "0"; input.max = "100"; }
+  if (placeholder) input.placeholder = placeholder;
+  if (invalid) input.classList.add("invalid");
+  input.oninput = (e) => { input.classList.remove("invalid"); onChange(e.target.value); };
+  wrap.appendChild(input);
+  return wrap;
 }
 
-function newCandidate() {
-  return { name: "", vote_share: "", incumbent: false };
-}
-
-/* ───────────────────────── Form rendering ───────────────────────── */
-
-function renderForm() {
+function renderForm(errors) {
+  errors = errors || {};
   const container = document.getElementById("racesContainer");
-  const emptyState = document.getElementById("emptyState");
   container.innerHTML = "";
-  emptyState.style.display = races.length === 0 ? "block" : "none";
 
   races.forEach((race, rIdx) => {
     const card = document.createElement("div");
@@ -322,34 +144,46 @@ function renderForm() {
     header.className = "race-card-header";
     const title = document.createElement("div");
     title.className = "title";
-    title.textContent = race.race_name ? race.race_name : `Race #${rIdx + 1}`;
+    title.textContent = race.race_name || `Race ${rIdx + 1}`;
     header.appendChild(title);
-
-    const removeRaceBtn = document.createElement("button");
-    removeRaceBtn.className = "btn danger";
-    removeRaceBtn.textContent = "Remove Race";
-    removeRaceBtn.onclick = () => { races.splice(rIdx, 1); refreshAll(); };
-    header.appendChild(removeRaceBtn);
+    if (races.length > 1) {
+      const removeRaceBtn = document.createElement("button");
+      removeRaceBtn.className = "btn danger";
+      removeRaceBtn.textContent = "Remove race";
+      removeRaceBtn.onclick = () => { races.splice(rIdx, 1); renderForm(); };
+      header.appendChild(removeRaceBtn);
+    }
     card.appendChild(header);
 
+    const shareInputs = [];
     const grid = document.createElement("div");
     grid.className = "race-form-grid";
-    grid.appendChild(makeField("Race Name", race.race_name, (v) => { race.race_name = v; title.textContent = v || `Race #${rIdx + 1}`; refreshPreviewAndEmbed(); }, "text", "e.g. U.S. Senate - Ohio"));
-    grid.appendChild(makeField("% of Vote Counted", race.pct_counted, (v) => { race.pct_counted = v; refreshPreviewAndEmbed(); }, "number", "e.g. 87"));
+    grid.appendChild(makeField("Race name", `race-${race.id}-name`, race.race_name,
+      (v) => { race.race_name = v; title.textContent = v || `Race ${rIdx + 1}`; },
+      "text", "e.g. Mayor – Springfield", errors[`r${rIdx}`]));
+    grid.appendChild(makeField("Number of Votes Counted", `race-${race.id}-total`, race.total_votes || "",
+      (v) => { race.total_votes = v; recomputeShares(race, shareInputs); }, "number", "e.g. 12500", errors[`t${rIdx}`]));
+    grid.appendChild(makeField("Percent of Votes Counted (%)", `race-${race.id}-pct`, race.pct_counted,
+      (v) => { race.pct_counted = v; }, "number", "e.g. 87", errors[`p${rIdx}`]));
     card.appendChild(grid);
+    if (errors[`r${rIdx}`]) {
+      const e = document.createElement("div");
+      e.className = "field-error";
+      e.textContent = errors[`r${rIdx}`];
+      card.insertBefore(e, grid.nextSibling);
+    }
 
     const table = document.createElement("table");
     table.className = "candidates";
-    const thead = document.createElement("thead");
-    thead.innerHTML = `<tr>
-      <th style="width:44%">Candidate Name</th>
-      <th style="width:24%">Vote Share (%)</th>
-      <th style="width:20%">Incumbent</th>
-      <th style="width:8%"></th>
-    </tr>`;
-    table.appendChild(thead);
-
+    table.innerHTML = `<thead><tr>
+      <th style="width:34%">Candidate</th>
+      <th style="width:20%">Votes</th>
+      <th style="width:20%">Vote share (%)</th>
+      <th style="width:14%">Incumbent</th>
+      <th style="width:12%"><span style="position:absolute;left:-9999px;">Remove</span></th>
+    </tr></thead>`;
     const tbody = document.createElement("tbody");
+
     race.candidates.forEach((cand, cIdx) => {
       const tr = document.createElement("tr");
 
@@ -358,44 +192,75 @@ function renderForm() {
       nameInput.type = "text";
       nameInput.value = cand.name;
       nameInput.placeholder = "Candidate name";
-      nameInput.oninput = (e) => { cand.name = e.target.value; refreshPreviewAndEmbed(); };
+      nameInput.setAttribute("aria-label", `Race ${rIdx + 1} candidate ${cIdx + 1} name`);
+      if (errors[`c${rIdx}_${cIdx}`]) nameInput.classList.add("invalid");
+      nameInput.oninput = (e) => { cand.name = e.target.value; nameInput.classList.remove("invalid"); };
+      nameInput.onkeydown = (e) => {
+        if (e.key === "Enter" && cIdx === race.candidates.length - 1) {
+          e.preventDefault();
+          race.candidates.push(newCandidate());
+          renderForm();
+          focusCandidate(rIdx, race.candidates.length - 1);
+        }
+      };
       nameTd.appendChild(nameInput);
       tr.appendChild(nameTd);
+
+      const votesTd = document.createElement("td");
+      const votesInput = document.createElement("input");
+      votesInput.type = "number";
+      votesInput.min = "0";
+      votesInput.step = "1";
+      votesInput.value = cand.votes || "";
+      votesInput.placeholder = "0";
+      votesInput.setAttribute("aria-label", `Race ${rIdx + 1} candidate ${cIdx + 1} votes`);
+      if (errors[`v${rIdx}_${cIdx}`]) votesInput.classList.add("invalid");
+      votesInput.oninput = (e) => { cand.votes = e.target.value; votesInput.classList.remove("invalid"); recomputeShares(race, shareInputs); };
+      votesTd.appendChild(votesInput);
+      tr.appendChild(votesTd);
 
       const shareTd = document.createElement("td");
       const shareInput = document.createElement("input");
       shareInput.type = "number";
       shareInput.step = "0.1";
+      shareInput.min = "0";
+      shareInput.max = "100";
       shareInput.value = cand.vote_share;
       shareInput.placeholder = "0.0";
-      shareInput.className = "pct-input";
-      shareInput.oninput = (e) => { cand.vote_share = e.target.value; refreshPreviewAndEmbed(); };
+      shareInput.setAttribute("aria-label", `Race ${rIdx + 1} candidate ${cIdx + 1} vote share`);
+      if (errors[`s${rIdx}_${cIdx}`]) shareInput.classList.add("invalid");
+      shareInput.oninput = (e) => { cand.vote_share = e.target.value; shareInput.classList.remove("invalid"); };
+      shareInputs[cIdx] = shareInput;
       shareTd.appendChild(shareInput);
       tr.appendChild(shareTd);
 
       const incTd = document.createElement("td");
-      incTd.className = "incumbent-cell";
+      incTd.className = "center";
       const incInput = document.createElement("input");
       incInput.type = "checkbox";
       incInput.checked = !!cand.incumbent;
+      incInput.setAttribute("aria-label", `Race ${rIdx + 1} candidate ${cIdx + 1} is incumbent`);
       incInput.onchange = (e) => {
         cand.incumbent = e.target.checked;
         if (e.target.checked) {
           race.candidates.forEach((c, i) => { if (i !== cIdx) c.incumbent = false; });
           renderForm();
         }
-        refreshPreviewAndEmbed();
       };
       incTd.appendChild(incInput);
       tr.appendChild(incTd);
 
       const actionTd = document.createElement("td");
-      const removeCandBtn = document.createElement("button");
-      removeCandBtn.className = "btn danger";
-      removeCandBtn.textContent = "✕";
-      removeCandBtn.title = "Remove candidate";
-      removeCandBtn.onclick = () => { race.candidates.splice(cIdx, 1); refreshAll(); };
-      actionTd.appendChild(removeCandBtn);
+      actionTd.className = "center";
+      if (race.candidates.length > 1) {
+        const removeCandBtn = document.createElement("button");
+        removeCandBtn.className = "btn danger";
+        removeCandBtn.textContent = "✕";
+        removeCandBtn.title = "Remove candidate";
+        removeCandBtn.setAttribute("aria-label", "Remove candidate");
+        removeCandBtn.onclick = () => { race.candidates.splice(cIdx, 1); renderForm(); };
+        actionTd.appendChild(removeCandBtn);
+      }
       tr.appendChild(actionTd);
 
       tbody.appendChild(tr);
@@ -403,439 +268,112 @@ function renderForm() {
     table.appendChild(tbody);
     card.appendChild(table);
 
-    const rowActions = document.createElement("div");
-    rowActions.className = "row-actions";
     const addCandBtn = document.createElement("button");
     addCandBtn.className = "btn";
-    addCandBtn.textContent = "+ Add Candidate";
-    addCandBtn.onclick = () => { race.candidates.push(newCandidate()); refreshAll(); };
-    rowActions.appendChild(addCandBtn);
-    card.appendChild(rowActions);
+    addCandBtn.textContent = "+ Add candidate";
+    addCandBtn.onclick = () => {
+      race.candidates.push(newCandidate());
+      renderForm();
+      focusCandidate(rIdx, race.candidates.length - 1);
+    };
+    card.appendChild(addCandBtn);
 
     container.appendChild(card);
   });
 }
 
-function makeField(labelText, value, onChange, type, placeholder) {
-  const wrap = document.createElement("div");
-  const label = document.createElement("label");
-  label.textContent = labelText;
-  wrap.appendChild(label);
-  const input = document.createElement("input");
-  input.type = type || "text";
-  input.value = value;
-  if (placeholder) input.placeholder = placeholder;
-  input.oninput = (e) => onChange(e.target.value);
-  wrap.appendChild(input);
-  return wrap;
+function recomputeShares(race, shareInputs) {
+  const sum = race.candidates.reduce((t, c) => t + (Number(c.votes) || 0), 0);
+  const total = Number(race.total_votes) || sum;
+  if (!total) return;
+  race.candidates.forEach((c, i) => {
+    if (c.votes === undefined || c.votes === "") return;
+    const share = Math.round((Number(c.votes) / total) * 1000) / 10;
+    c.vote_share = share;
+    if (shareInputs[i]) { shareInputs[i].value = share; shareInputs[i].classList.remove("invalid"); }
+  });
+}
+
+function focusCandidate(rIdx, cIdx) {
+  const cards = document.querySelectorAll(".race-card");
+  const rows = cards[rIdx] && cards[rIdx].querySelectorAll("table.candidates tbody tr");
+  const input = rows && rows[cIdx] && rows[cIdx].querySelector("input[type=text]");
+  if (input) input.focus();
 }
 
 document.getElementById("addRaceBtn").onclick = () => {
   races.push(newRace());
-  refreshAll();
-};
-
-function refreshAll() {
   renderForm();
-  refreshPreviewAndEmbed();
-}
+  const last = races[races.length - 1];
+  const el = document.getElementById(`race-${last.id}-name`);
+  if (el) { el.focus(); el.scrollIntoView({ block: "center" }); }
+};
 
-/* ───────────────────────── CSV build/parse (shared model) ───────────────────────── */
+/* ───────────── Validation & continue to Step 2 ───────────── */
 
-function csvEscape(value) {
-  if (value === null || value === undefined) return "";
-  const str = String(value);
-  if (str.includes(",") || str.includes('"') || str.includes("\n") || str.includes("\r")) {
-    return '"' + str.replace(/"/g, '""') + '"';
+function validate() {
+  const errors = {};
+  const msgs = [];
+  const filled = races.filter(isRaceFilled);
+  if (filled.length === 0) {
+    return { errors, msg: "Add at least one race with a name and candidates." };
   }
-  return str;
-}
-
-function racesToCsv() {
-  const cleanRaces = races.filter(r => r.race_name.trim() !== "" || r.candidates.some(c => c.name.trim() !== ""));
-  if (cleanRaces.length === 0) return "";
-
-  let maxCandidates = 0;
-  cleanRaces.forEach(r => {
-    const validCount = r.candidates.filter(c => c.name && c.name.trim() !== "").length;
-    if (validCount > maxCandidates) maxCandidates = validCount;
-  });
-  if (maxCandidates === 0) maxCandidates = 1;
-
-  const headers = ["race_name", "incumbent", "pct_counted"];
-  for (let i = 1; i <= maxCandidates; i++) {
-    headers.push(`candidate_${i}_name`, `candidate_${i}_vote_share`, `candidate_${i}_incumbent`);
-  }
-
-  const rows = cleanRaces.map(race => {
-    const candidates = race.candidates
-      .filter(c => c.name && c.name.trim() !== "")
-      .map(c => ({
-        name: c.name.trim(),
-        vote_share: c.vote_share === "" ? null : Number(c.vote_share),
-        incumbent: !!c.incumbent
-      }));
-    const incumbentCandidate = candidates.find(c => c.incumbent);
-
-    const fields = [
-      race.race_name.trim(),
-      incumbentCandidate ? incumbentCandidate.name : "",
-      race.pct_counted === "" ? "" : Number(race.pct_counted)
-    ];
-    for (let i = 0; i < maxCandidates; i++) {
-      if (i < candidates.length) {
-        fields.push(candidates[i].name);
-        fields.push(candidates[i].vote_share === null ? "" : candidates[i].vote_share);
-        fields.push(candidates[i].incumbent ? "true" : "false");
-      } else {
-        fields.push("", "", "");
+  races.forEach((race, rIdx) => {
+    if (!isRaceFilled(race)) return;
+    if (!race.race_name.trim()) { errors[`r${rIdx}`] = "Give this race a name."; }
+    if (String(race.total_votes || "").trim() === "") { errors[`t${rIdx}`] = true; }
+    if (String(race.pct_counted).trim() === "") { errors[`p${rIdx}`] = true; }
+    let missing = !!(errors[`r${rIdx}`] || errors[`t${rIdx}`] || errors[`p${rIdx}`]);
+    let total = 0;
+    race.candidates.forEach((c, cIdx) => {
+      if (!c.name.trim()) { errors[`c${rIdx}_${cIdx}`] = true; missing = true; }
+      if (String(c.votes || "").trim() === "") { errors[`v${rIdx}_${cIdx}`] = true; missing = true; }
+      if (String(c.vote_share).trim() === "") { errors[`s${rIdx}_${cIdx}`] = true; missing = true; }
+      else {
+        const n = Number(c.vote_share);
+        if (isNaN(n) || n < 0 || n > 100) { errors[`s${rIdx}_${cIdx}`] = true; }
+        else total += n;
       }
-    }
-    return fields.map(csvEscape).join(",");
-  });
-
-  return [headers.join(","), ...rows].join("\n");
-}
-
-function parseCsvRow(line) {
-  const fields = [];
-  let i = 0;
-  let field = "";
-  let inQuotes = false;
-  while (i < line.length) {
-    const ch = line[i];
-    if (inQuotes) {
-      if (ch === '"') {
-        if (i + 1 < line.length && line[i + 1] === '"') { field += '"'; i += 2; }
-        else { inQuotes = false; i++; }
-      } else { field += ch; i++; }
-    } else {
-      if (ch === '"') { inQuotes = true; i++; }
-      else if (ch === ',') { fields.push(field); field = ""; i++; }
-      else { field += ch; i++; }
-    }
-  }
-  fields.push(field);
-  return fields;
-}
-
-function parseCsv(text) {
-  const rows = [];
-  let current = "";
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (ch === '"') { inQuotes = !inQuotes; current += ch; }
-    else if ((ch === '\n' || ch === '\r') && !inQuotes) {
-      if (ch === '\r' && i + 1 < text.length && text[i + 1] === '\n') i++;
-      if (current.trim().length > 0) rows.push(parseCsvRow(current));
-      current = "";
-    } else { current += ch; }
-  }
-  if (current.trim().length > 0) rows.push(parseCsvRow(current));
-  return rows;
-}
-
-function csvToRaces(text) {
-  const rows = parseCsv(text);
-  if (rows.length < 2) throw new Error("CSV appears empty or has only a header row.");
-
-  const headerRow = rows[0].map(h => h.trim().toLowerCase());
-  const candidateCols = headerRow.length - 3;
-  const numCandidates = Math.max(0, Math.floor(candidateCols / 3));
-
-  const result = [];
-  for (let r = 1; r < rows.length; r++) {
-    const fields = rows[r];
-    raceIdCounter += 1;
-
-    const raceName = fields[0] || "";
-    const incumbent = fields[1] || "";
-    const pctCounted = fields[2] || "";
-
-    const candidates = [];
-    for (let c = 0; c < numCandidates; c++) {
-      const baseIdx = 3 + c * 3;
-      const candName = (fields[baseIdx] || "").trim();
-      if (candName === "") continue;
-      const candShare = fields[baseIdx + 1] || "";
-      const candInc = (fields[baseIdx + 2] || "").toLowerCase() === "true";
-      candidates.push({
-        name: candName,
-        vote_share: candShare === "" ? "" : Number(candShare),
-        incumbent: candInc || (!!incumbent && candName === incumbent)
-      });
-    }
-    if (candidates.length === 0) candidates.push(newCandidate());
-
-    result.push({
-      id: raceIdCounter,
-      race_name: raceName,
-      pct_counted: pctCounted === "" ? "" : Number(pctCounted),
-      candidates
     });
-  }
-  return result;
-}
-
-/* ───────────────────────── Base64url encode/decode (matches race-viewer.html) ───────────────────────── */
-
-function encodeCsvForUrl(text) {
-  const bytes = new TextEncoder().encode(text);
-  let binary = "";
-  bytes.forEach(b => { binary += String.fromCharCode(b); });
-  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-function decodeCsvFromUrl(encoded) {
-  const b64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
-  const binary = atob(b64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return new TextDecoder().decode(bytes);
-}
-
-/* ───────────────────────── Preview rendering (mirrors race-viewer.html) ───────────────────────── */
-
-function computeShare(cand) {
-  if (cand.vote_share !== null && cand.vote_share !== undefined && cand.vote_share !== "") {
-    return Number(cand.vote_share);
-  }
-  return null;
-}
-
-function renderRacePanel(race, maxCandidates, sortByShare) {
-  const panel = document.createElement("div");
-  panel.className = "race-panel";
-
-  const candidates = (race.candidates || [])
-    .filter(c => c.name && c.name.trim() !== "")
-    .map(c => ({ ...c }));
-
-  candidates.forEach(c => {
-    c._share = computeShare(c);
-    c._isIncumbent = !!c.incumbent;
+    if (missing && !errors[`r${rIdx}`]) errors[`r${rIdx}`] = "Fill in all required fields (everything except Incumbent).";
+    const voteSum = race.candidates.reduce((t, c) => t + (Number(c.votes) || 0), 0);
+    if (Number(race.total_votes) > 0 && voteSum !== Number(race.total_votes)) {
+      errors[`r${rIdx}`] = errors[`r${rIdx}`] || `Candidate votes add up to ${voteSum.toLocaleString()}, which doesn't match the Number of Votes Counted (${Number(race.total_votes).toLocaleString()}).`;
+    }
+    if (total > 100.5) { if (!errors[`r${rIdx}`]) errors[`r${rIdx}`] = `Vote shares add up to ${total.toFixed(1)}%, which is more than 100%.`; }
+    if (race.pct_counted !== "" && (Number(race.pct_counted) < 0 || Number(race.pct_counted) > 100)) {
+      errors[`r${rIdx}`] = errors[`r${rIdx}`] || "“Votes counted” must be between 0 and 100.";
+    }
   });
-
-  let ordered = candidates.slice();
-  if (sortByShare) {
-    ordered.sort((a, b) => (b._share ?? -Infinity) - (a._share ?? -Infinity));
-  }
-
-  const shown = ordered.slice(0, maxCandidates);
-  const rest = ordered.slice(maxCandidates);
-  const maxShare = Math.max(...ordered.map(c => c._share || 0), 0.0001);
-  const leaderName = ordered.length ? ordered[0].name : null;
-
-  const head = document.createElement("div");
-  head.className = "head";
-  const nameEl = document.createElement("p");
-  nameEl.className = "name";
-  nameEl.textContent = race.race_name || "(Unnamed Race)";
-  head.appendChild(nameEl);
-  panel.appendChild(head);
-
-  const table = document.createElement("table");
-  table.className = "results";
-  table.innerHTML = `<thead><tr><th>Candidate</th><th class="share-cell">Vote Share</th></tr></thead>`;
-  const tbody = document.createElement("tbody");
-
-  shown.forEach(c => {
-    const tr = document.createElement("tr");
-    if (leaderName && c.name === leaderName && c._share !== null) tr.classList.add("leader");
-
-    const nameTd = document.createElement("td");
-    nameTd.className = "name-cell";
-    nameTd.textContent = (c.name || "(Unnamed candidate)") + (c._isIncumbent ? " *" : "");
-    tr.appendChild(nameTd);
-
-    const shareTd = document.createElement("td");
-    shareTd.className = "share-cell";
-    const shareWrap = document.createElement("div");
-    shareWrap.className = "share-bar-wrap";
-    const shareBarOuter = document.createElement("div");
-    shareBarOuter.className = "share-bar";
-    const shareBarInner = document.createElement("div");
-    const pctVal = c._share === null ? 0 : c._share;
-    shareBarInner.style.width = Math.min(100, (pctVal / maxShare) * 100) + "%";
-    shareBarOuter.appendChild(shareBarInner);
-    const shareLabel = document.createElement("span");
-    shareLabel.className = "share-pct";
-    shareLabel.textContent = c._share === null ? "—" : c._share.toFixed(1) + "%";
-    shareWrap.appendChild(shareBarOuter);
-    shareWrap.appendChild(shareLabel);
-    shareTd.appendChild(shareWrap);
-    tr.appendChild(shareTd);
-
-    tbody.appendChild(tr);
-  });
-
-  if (rest.length > 0) {
-    const tr = document.createElement("tr");
-    tr.className = "other";
-    const otherShare = rest.reduce((sum, c) => sum + (c._share || 0), 0);
-
-    const nameTd = document.createElement("td");
-    nameTd.className = "name-cell";
-    nameTd.textContent = `Other candidates (${rest.length})`;
-    nameTd.title = rest.map(c => c.name).join(", ");
-    tr.appendChild(nameTd);
-
-    const shareTd = document.createElement("td");
-    shareTd.className = "share-cell";
-    const shareWrap = document.createElement("div");
-    shareWrap.className = "share-bar-wrap";
-    const shareBarOuter = document.createElement("div");
-    shareBarOuter.className = "share-bar";
-    const shareBarInner = document.createElement("div");
-    shareBarInner.style.width = Math.min(100, (otherShare / maxShare) * 100) + "%";
-    shareBarOuter.appendChild(shareBarInner);
-    const shareLabel = document.createElement("span");
-    shareLabel.className = "share-pct";
-    shareLabel.textContent = otherShare.toFixed(1) + "%";
-    shareWrap.appendChild(shareBarOuter);
-    shareWrap.appendChild(shareLabel);
-    shareTd.appendChild(shareWrap);
-    tr.appendChild(shareTd);
-
-    tbody.appendChild(tr);
-  }
-
-  table.appendChild(tbody);
-  panel.appendChild(table);
-
-  const footer = document.createElement("div");
-  footer.className = "foot";
-  const pct = race.pct_counted === null || race.pct_counted === undefined || race.pct_counted === ""
-    ? "—" : `${Number(race.pct_counted)}%`;
-  const pctLabel = document.createElement("div");
-  pctLabel.className = "meta";
-  pctLabel.innerHTML = `<span></span><span>${pct} counted</span>`;
-  footer.appendChild(pctLabel);
-
-  const bar = document.createElement("div");
-  bar.className = "progress-bar";
-  const barFill = document.createElement("div");
-  const pctNum = race.pct_counted === null || race.pct_counted === undefined || race.pct_counted === "" ? 0 : Number(race.pct_counted);
-  barFill.style.width = Math.min(100, Math.max(0, pctNum)) + "%";
-  bar.appendChild(barFill);
-  footer.appendChild(bar);
-
-  panel.appendChild(footer);
-  return panel;
+  const count = Object.keys(errors).length;
+  return { errors, msg: count ? "Please fix the highlighted items, then try again." : "" };
 }
 
-function renderPreview() {
-  const grid = document.getElementById("previewGrid");
-  grid.innerHTML = "";
-
-  const visibleRaces = races.filter(r => r.race_name.trim() !== "" || r.candidates.some(c => c.name.trim() !== ""));
-  if (visibleRaces.length === 0) {
-    grid.innerHTML = '<div class="empty-state">Add a race to see a live preview.</div>';
+document.getElementById("previewBtn").onclick = () => {
+  const { errors, msg } = validate();
+  document.getElementById("formMsg").textContent = msg;
+  if (msg) {
+    renderForm(errors);
+    const first = document.querySelector(".invalid, .field-error");
+    if (first) first.scrollIntoView({ block: "center" });
     return;
   }
-
-  const maxCandidates = Math.max(1, parseInt(document.getElementById("maxCandidates").value, 10) || 3);
-  const sortByShare = document.getElementById("sortToggle").checked;
-
-  visibleRaces.forEach(race => {
-    grid.appendChild(renderRacePanel(race, maxCandidates, sortByShare));
-  });
-}
-
-/* ───────────────────────── Embed link generation ───────────────────────── */
-
-function refreshPreviewAndEmbed() {
-  renderPreview();
-  updateEmbedSnippet();
-}
-
-function buildEmbedUrl() {
-  const csv = racesToCsv();
-  if (!csv) return null;
-  const maxCandidates = document.getElementById("maxCandidates").value || "3";
-  const base = new URL("race-viewer.html", window.location.href);
-  base.searchParams.set("embed", "1");
-  base.searchParams.set("data", encodeCsvForUrl(csv));
-  base.searchParams.set("max", maxCandidates);
-  if (!document.getElementById("sortToggle").checked) {
-    base.searchParams.set("sort", "0");
-  }
-  return base.toString();
-}
-
-function updateEmbedSnippet() {
-  const snippetEl = document.getElementById("embedSnippet");
-  const warningEl = document.getElementById("sizeWarning");
-  const embedUrl = buildEmbedUrl();
-
-  if (!embedUrl) {
-    snippetEl.value = "";
-    warningEl.classList.remove("show");
-    return;
-  }
-
-  snippetEl.value = `<iframe src="${embedUrl}" width="100%" height="600" style="border:1px solid #d0d5dd;border-radius:8px;" loading="lazy"></iframe>`;
-
-  if (embedUrl.length > 8000) {
-    warningEl.textContent = `Warning: this URL is ${embedUrl.length.toLocaleString()} characters. Some servers/proxies reject URLs beyond ~8000 characters.`;
-    warningEl.classList.add("show");
-  } else if (embedUrl.length > 2000) {
-    warningEl.textContent = `Note: this URL is ${embedUrl.length.toLocaleString()} characters. Fine as an <iframe> src, but long to share as a plain link.`;
-    warningEl.classList.add("show");
-  } else {
-    warningEl.classList.remove("show");
-  }
-}
-
-document.getElementById("maxCandidates").onchange = refreshPreviewAndEmbed;
-document.getElementById("sortToggle").onchange = refreshPreviewAndEmbed;
-
-document.getElementById("embedCopySnippetBtn").onclick = async () => {
-  const text = document.getElementById("embedSnippet").value;
-  if (!text) { alert("Add at least one race first."); return; }
-  await copyToClipboard(text, "embedCopySnippetBtn");
+  const max = Math.max(1, parseInt(document.getElementById("maxCandidates").value, 10) || 3);
+  const sort = document.getElementById("sortToggle").checked;
+  window.location.href = "publish.html" + buildHash(races, max, sort);
 };
 
-document.getElementById("embedCopyLinkBtn").onclick = async () => {
-  const url = buildEmbedUrl();
-  if (!url) { alert("Add at least one race first."); return; }
-  await copyToClipboard(url, "embedCopyLinkBtn");
-};
+/* ───────────── Import an existing widget ───────────── */
 
-async function copyToClipboard(text, btnId) {
-  try {
-    await navigator.clipboard.writeText(text);
-    const btn = document.getElementById(btnId);
-    const old = btn.textContent;
-    btn.textContent = "Copied!";
-    setTimeout(() => { btn.textContent = old; }, 1200);
-  } catch (e) {
-    alert("Could not copy automatically. Please select and copy manually.");
-  }
-}
-
-/* ───────────────────────── Import from embed link ───────────────────────── */
-
-function extractDataParam(input) {
-  const trimmed = input.trim();
-  if (!trimmed) return null;
-
-  // Try parsing as a full URL (with or without a real origin/base).
-  try {
-    const url = new URL(trimmed, window.location.href);
-    const dataParam = url.searchParams.get("data");
-    if (dataParam) return dataParam;
-  } catch (e) {
-    // not a valid URL; fall through
-  }
-
-  // Fall back to treating input as raw querystring or raw base64url data.
-  const match = trimmed.match(/data=([^&\s]+)/);
-  if (match) return decodeURIComponent(match[1]);
-
-  // Last resort: assume the pasted text IS the data value itself.
-  return trimmed;
+function loadFromParams(params) {
+  const csvText = decodeCsvFromUrl(params.data);
+  const imported = csvToRaces(csvText);
+  if (imported.length === 0) throw new Error("No races found.");
+  races = imported;
+  document.getElementById("maxCandidates").value = params.max;
+  document.getElementById("sortToggle").checked = params.sort;
+  renderForm();
+  return imported.length;
 }
 
 document.getElementById("importBtn").onclick = () => {
@@ -843,35 +381,32 @@ document.getElementById("importBtn").onclick = () => {
   statusEl.className = "import-status";
   statusEl.textContent = "";
 
-  const input = document.getElementById("importInput").value;
-  const dataParam = extractDataParam(input);
-
-  if (!dataParam) {
+  const params = extractEmbedParams(document.getElementById("importInput").value);
+  if (!params) {
     statusEl.className = "import-status error";
-    statusEl.textContent = "Paste an embed link or its data value first.";
+    statusEl.textContent = "Paste the embed code or link first.";
     return;
   }
-
   try {
-    const csvText = decodeCsvFromUrl(dataParam);
-    const importedRaces = csvToRaces(csvText);
-    if (importedRaces.length === 0) {
-      throw new Error("No races found in the decoded data.");
-    }
-    races = importedRaces;
-    refreshAll();
+    const n = loadFromParams(params);
     statusEl.className = "import-status success";
-    statusEl.textContent = `Imported ${importedRaces.length} race${importedRaces.length === 1 ? "" : "s"}.`;
+    statusEl.textContent = `Loaded ${n} race${n === 1 ? "" : "s"}. Scroll up to edit.`;
   } catch (err) {
     statusEl.className = "import-status error";
-    statusEl.textContent = "Could not import: " + err.message;
+    statusEl.textContent = "That doesn't look like a widget from this tool, so we couldn't load it.";
   }
 };
 
-/* ───────────────────────── Init ───────────────────────── */
+/* ───────────── Init ───────────── */
 
-races.push(newRace());
-refreshAll();
+(function init() {
+  const fromHash = readHash(); // arrives here from "Back to edit" on Step 2
+  if (fromHash) {
+    try { loadFromParams(fromHash); return; } catch (e) { /* fall back to a blank form */ }
+  }
+  races.push(newRace());
+  renderForm();
+})();
 </script>
 </body>
 </html>

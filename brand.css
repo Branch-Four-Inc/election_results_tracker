@@ -1,0 +1,94 @@
+/* Branch Four brand system – shared by index.html and publish.html */
+@font-face { font-family: 'Lucette'; src: url('fonts/Lucette-Regular.woff2') format('woff2'); font-weight: 400; font-style: normal; font-display: swap; }
+
+:root {
+  --navy: #24629a;
+  --navy-deep: #1b4a78;
+  --periwinkle: #93afde;
+  --orange: #ea9c4b;
+  --orange-text: #a85f16;
+  --gold: #f5cb77;
+  --tint: #dce9ff;
+  --ink: #12202e;
+  --ink-soft: #3c4c5c;
+  --line: rgba(18, 32, 46, 0.14);
+  --error: #b42318;
+  --ok: #067647;
+  --serif: 'Lucette', Georgia, serif;
+  --mono: 'DM Mono', ui-monospace, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0; background: #fff; color: var(--ink);
+  font-family: var(--mono); font-size: 13px; line-height: 1.6;
+}
+h1, h2, h3, h4 { font-family: var(--serif); font-weight: 400; margin: 0; color: var(--ink); }
+a { color: var(--navy); }
+
+/* ---- stepper ---- */
+.stepper {
+  list-style: none; margin: 28px auto 0; padding: 0 24px; max-width: 1400px;
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; position: relative; z-index: 5;
+}
+.stepper .step {
+  position: relative; padding-top: 16px; display: flex; gap: 8px; align-items: baseline; opacity: .75;
+}
+.stepper .step::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 8px; border-radius: 999px; background: var(--tint);
+}
+.stepper { counter-reset: stepno; }
+.stepper .step { counter-increment: stepno; }
+.stepper .st-title::before { content: counter(stepno) ". "; }
+.stepper .num { display: none; }
+.stepper .st-title { font-family: var(--serif); font-weight: 400; font-size: 18px; line-height: 1.2; }
+.stepper .st-desc { font-size: 11px; color: var(--ink-soft); margin-top: 2px; }
+.stepper .step.active { opacity: 1; }
+.stepper .step.active::before { background: linear-gradient(90deg, var(--navy) 50%, var(--tint) 50%); }
+.stepper .step.done { opacity: 1; }
+.stepper .step.done::before { background: var(--navy); }
+@media (max-width: 760px) {
+  .stepper { grid-template-columns: 1fr; gap: 8px; }
+  .stepper .st-desc { display: none; }
+}
+
+/* ---- eyebrow ---- */
+.eyebrow {
+  font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--orange-text);
+  font-weight: 500; display: flex; align-items: center; gap: 10px; margin: 0 0 8px;
+}
+.eyebrow::before { content: ""; width: 22px; height: 2px; background: var(--orange); }
+
+/* ---- panels ---- */
+.panel { background: #fff; border: 1px solid var(--periwinkle); border-radius: 16px; padding: 26px 28px; margin-bottom: 22px; box-shadow: 0 14px 28px -22px rgba(36, 98, 154, 0.4); }
+.panel h2 { font-size: 26px; margin: 0 0 6px; }
+.lead { font-size: 12.5px; color: var(--ink-soft); margin: 0 0 18px; }
+
+/* ---- forms ---- */
+label { font-size: 11px; font-weight: 500; color: var(--ink); display: block; margin-bottom: 5px; }
+input[type=text], input[type=number], textarea {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+  font-family: var(--mono); font-size: 13px; color: var(--ink); background: #fff;
+}
+input::placeholder, textarea::placeholder { color: #8a97a4; }
+input:focus, textarea:focus { border-color: var(--navy); }
+input:focus-visible, textarea:focus-visible, button:focus-visible, a:focus-visible, summary:focus-visible {
+  outline: 3px solid var(--periwinkle); outline-offset: 1px;
+}
+.invalid { border-color: var(--error) !important; background: #fef3f2 !important; }
+.field-error { color: var(--error); font-size: 11.5px; margin: 0 0 10px; font-weight: 500; }
+
+/* ---- buttons (always pills) ---- */
+.btn {
+  font-family: var(--mono); font-size: 12px; font-weight: 500; cursor: pointer;
+  padding: 10px 20px; border-radius: 999px; border: 1.5px solid var(--navy); background: transparent; color: var(--navy);
+  text-decoration: none; display: inline-block; line-height: 1.3;
+}
+.btn:hover { background: var(--tint); }
+.btn.primary { background: var(--ink); color: #fff; border-color: var(--ink); }
+.btn.primary:hover { background: var(--navy); border-color: var(--navy); }
+.btn.secondary { background: var(--periwinkle); color: var(--ink); border-color: var(--periwinkle); }
+.btn.danger { color: var(--error); border-color: #f1a9a3; }
+.btn.danger:hover { background: #fef3f2; }
+.btn.big { padding: 15px 30px; font-size: 13.5px; }
+.btn.active { background: var(--tint); }

@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Race Results Viewer</title>
 <style>
   :root {
     --border: #d0d5dd;
-    --bg: #f5f6f8;
+    --bg: #f0f1f3;
     --accent: #1a56db;
     --incumbent: #f59e0b;
     --leader: #ecfdf5;
@@ -27,7 +28,7 @@
   header p { margin: 4px 0 0; font-size: 12px; color: #9ca3af; }
 
   .toolbar {
-    max-width: 1200px;
+    max-width: 1800px;
     margin: 16px auto 0;
     padding: 0 20px;
     display: flex;
@@ -60,11 +61,11 @@
   .toolbar button.primary:hover { background: #1743ad; }
 
   main {
-    max-width: 1200px;
+    max-width: 1800px;
     margin: 0 auto;
     padding: 20px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(min(420px, 100%), 1fr));
     gap: 18px;
     align-items: start;
   }
@@ -101,7 +102,7 @@
     font-size: 12px;
     color: #6b7280;
     display: flex;
-    justify-content: flex-end;
+    justify-content: space-between;
   }
   .progress-bar {
     height: 5px;
@@ -139,7 +140,17 @@
   table.results tr.leader td.name-cell { border-left: 3px solid var(--leader-border); }
   table.results tr.other td { color: #6b7280; font-style: italic; }
 
+  table.results th.votes-cell, table.results th.share-cell { text-align: right; }
+  @media (max-width: 480px) {
+    main { padding: 12px; }
+    .race-panel .head, .race-panel .foot { padding-left: 12px; padding-right: 12px; }
+    table.results th, table.results td { padding-left: 8px; padding-right: 8px; }
+    .share-cell { width: auto; }
+    .share-bar { display: none; }
+  }
+
   .name-cell { font-weight: 600; }
+  .votes-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .share-cell { text-align: right; font-variant-numeric: tabular-nums; width: 130px; }
   .share-bar-wrap {
     display: flex;
@@ -167,7 +178,7 @@
     font-size: 14px;
   }
   .parse-errors {
-    max-width: 1200px;
+    max-width: 1800px;
     margin: 10px auto 0;
     padding: 0 20px;
   }
@@ -569,6 +580,7 @@ function loadFromText(text) {
   const raceNameIdx = headers.indexOf("race_name");
   const incumbentIdx = headers.indexOf("incumbent");
   const pctCountedIdx = headers.indexOf("pct_counted");
+  const totalVotesIdx = headers.indexOf("total_votes");
 
   if (raceNameIdx === -1) {
     errorsEl.innerHTML = '<div class="err">CSV header missing required column: race_name</div>';
@@ -590,10 +602,12 @@ function loadFromText(text) {
     const nameCol = headers.indexOf(`candidate_${n}_name`);
     const shareCol = headers.indexOf(`candidate_${n}_vote_share`);
     const incCol = headers.indexOf(`candidate_${n}_incumbent`);
+    const votesCol = headers.indexOf(`candidate_${n}_votes`);
     if (nameCol !== -1) {
       candidateGroups.push({
         nameIdx: nameCol,
         voteShareIdx: shareCol,
+        votesIdx: votesCol,
         incumbentIdx: incCol
       });
     }
@@ -616,6 +630,7 @@ function loadFromText(text) {
         race_name: fields[raceNameIdx] || "",
         incumbent: incumbentIdx !== -1 ? (fields[incumbentIdx] || "") : "",
         pct_counted: pctCountedIdx !== -1 ? (fields[pctCountedIdx] || "") : "",
+        total_votes: totalVotesIdx !== -1 ? (fields[totalVotesIdx] || "") : "",
         candidates: []
       };
 
@@ -631,8 +646,10 @@ function loadFromText(text) {
         const voteShareRaw = group.voteShareIdx !== -1 && group.voteShareIdx < fields.length ? fields[group.voteShareIdx] : "";
         const incumbentRaw = group.incumbentIdx !== -1 && group.incumbentIdx < fields.length ? fields[group.incumbentIdx] : "";
 
+        const votesRaw = group.votesIdx !== undefined && group.votesIdx !== -1 && group.votesIdx < fields.length ? fields[group.votesIdx] : "";
         const candidate = {
           name: name,
+          votes: votesRaw !== "" && !isNaN(Number(votesRaw)) ? Number(votesRaw) : null,
           vote_share: voteShareRaw !== "" && !isNaN(Number(voteShareRaw)) ? Number(voteShareRaw) : voteShareRaw,
           incumbent: incumbentRaw.toLowerCase() === "true"
         };
@@ -705,6 +722,8 @@ function renderRacePanel(race, maxCandidates, sortByShare) {
   const shown = ordered.slice(0, maxCandidates);
   const rest = ordered.slice(maxCandidates);
 
+  const showVotes = ordered.some(c => c.votes !== null && c.votes !== undefined);
+  const fmtVotes = (v) => (v === null || v === undefined ? "—" : Number(v).toLocaleString());
   const maxShare = Math.max(...ordered.map(c => c._share || 0), 0.0001);
   const leaderName = ordered.length ? ordered[0].name : null;
 
@@ -722,6 +741,7 @@ function renderRacePanel(race, maxCandidates, sortByShare) {
   table.className = "results";
   table.innerHTML = `<thead><tr>
     <th>Candidate</th>
+    ${showVotes ? '<th class="votes-cell">Votes</th>' : ""}
     <th class="share-cell">Vote Share</th>
   </tr></thead>`;
 
@@ -735,6 +755,13 @@ function renderRacePanel(race, maxCandidates, sortByShare) {
     nameTd.className = "name-cell";
     nameTd.textContent = (c.name || "(Unnamed candidate)") + (c._isIncumbent ? " *" : "");
     tr.appendChild(nameTd);
+
+    if (showVotes) {
+      const votesTd = document.createElement("td");
+      votesTd.className = "votes-cell";
+      votesTd.textContent = fmtVotes(c.votes);
+      tr.appendChild(votesTd);
+    }
 
     const shareTd = document.createElement("td");
     shareTd.className = "share-cell";
@@ -769,6 +796,13 @@ function renderRacePanel(race, maxCandidates, sortByShare) {
     nameTd.title = rest.map(c => c.name).join(", ");
     tr.appendChild(nameTd);
 
+    if (showVotes) {
+      const votesTd = document.createElement("td");
+      votesTd.className = "votes-cell";
+      votesTd.textContent = fmtVotes(rest.reduce((sum, c) => sum + (c.votes || 0), 0));
+      tr.appendChild(votesTd);
+    }
+
     const shareTd = document.createElement("td");
     shareTd.className = "share-cell";
     const shareWrap = document.createElement("div");
@@ -800,7 +834,9 @@ function renderRacePanel(race, maxCandidates, sortByShare) {
     : `${Number(race.pct_counted)}%`;
   const pctLabel = document.createElement("div");
   pctLabel.className = "meta";
-  pctLabel.innerHTML = `<span></span><span>${pct} counted</span>`;
+  const totalVotes = Number(race.total_votes);
+  const totalLabel = totalVotes > 0 ? `Total votes counted: ${totalVotes.toLocaleString()}` : "";
+  pctLabel.innerHTML = `<span>${totalLabel}</span><span>${pct} counted</span>`;
   footer.appendChild(pctLabel);
 
   const bar = document.createElement("div");

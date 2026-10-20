@@ -4,10 +4,11 @@ Static, client-side tool for building election race result data and generating s
 
 ## Files
 
-- `index.html` — the main app: enter race/candidate data in a form, see a live preview, import from a previously generated embed link, and export a new embed snippet.
+- `index.html` — **Step 1**: enter race/candidate data in a form (or load an existing widget from a previously generated embed code via the side panel).
+- `publish.html` — **Steps 2 & 3**: preview the real widget, then copy the `<iframe>` embed code.
+- `shared.js` — CSV build/parse, URL encoding, and import helpers shared by both pages.
 - `race-viewer.html` — lightweight renderer used inside `<iframe>` embeds. Decodes race data from the URL and displays result tables. Not meant to be opened directly.
 - `sample-races.csv` — example data set.
-- `test-embed.html` — test page with lorem ipsum and a sample embed for checking layout behavior.
 
 No build step, server, or dependencies — everything runs in the browser via vanilla JS.
 
@@ -29,9 +30,8 @@ Then visit `http://localhost:8000`.
 
 ## How it works
 
-1. **Import existing data** — paste a previously generated embed link (or just its `data=` value) into the Import box to load races back into the form.
-2. **Enter data from scratch** — click "+ Add Race", fill in race names, candidates, vote shares, and % counted.
-3. **Preview live** — the right-hand panel updates as you type so you can see exactly how the results will render.
-4. **Export an embed link** — copy the generated `<iframe>` snippet from the Embed Link panel and paste it into any page. The race data is base64url-encoded directly into the URL (`race-viewer.html?embed=1&data=<encoded>&max=3`), so the embed is entirely self-contained — no CSV file, hosting, or CORS needed.
+1. **Enter results** (`index.html`) — fill in race names, candidates, vote shares, and % counted. To edit an earlier widget, open "Already made a widget? Edit it" in the side panel and paste its embed code or link.
+2. **Preview** (`publish.html`) — the real embed is shown in an `<iframe>`, with Desktop/Tablet/Phone widths and an adjustable height. "Back to edit" returns to Step 1 with your data intact (state travels in the URL hash).
+3. **Get embed code** — copy the generated `<iframe>` snippet and paste it into a Custom HTML block (WordPress, Ghost, etc.). The race data is base64url-encoded directly into the URL (`race-viewer.html?embed=1&data=<encoded>&max=3`), so the embed is entirely self-contained — no CSV file, hosting, or CORS needed.
 
 Since the data lives entirely in the URL, the embed is frozen at generation time. Re-generate and re-share the snippet after making changes. The panel warns if the URL gets long enough to risk truncation by some servers/proxies (roughly >8 000 characters).

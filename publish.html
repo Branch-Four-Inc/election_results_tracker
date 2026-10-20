@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Election Results Widget – Steps 2 &amp; 3: Preview and embed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="brand.css">
+<style>
+  main { max-width: 1400px; margin: 28px auto 0; padding: 0 24px 60px; }
+  .panel.step-panel { padding: 28px 30px; }
+  .step-badge { display: inline-flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+  .step-badge .n { width: 34px; height: 34px; border-radius: 50%; background: var(--navy); color: #fff; font-family: var(--serif); font-weight: 400; display: inline-flex; align-items: center; justify-content: center; }
+  .step-badge .eyebrow { margin: 0; }
+  .step-badge .eyebrow::before { display: none; }
+
+  .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .toolbar .spacer { flex: 1; }
+  .toolbar label { display: flex; align-items: center; gap: 8px; margin: 0; font-weight: 400; }
+  .toolbar input[type=number] { width: 90px; padding: 7px 10px; }
+  .seg { display: inline-flex; gap: 6px; }
+
+  .preview-frame-wrap { background: var(--tint); border-radius: 14px; padding: 18px; overflow: auto; }
+  .preview-frame-wrap iframe { display: block; margin: 0 auto; background: #fff; max-width: 100%; border: 1px solid var(--periwinkle); border-radius: 12px; }
+
+  textarea { height: 120px; font-size: 11px; resize: vertical; word-break: break-all; background: #f7faff; }
+  .warn { font-size: 12px; color: var(--orange-text); margin-top: 10px; display: none; font-weight: 500; }
+  .warn.show { display: block; }
+  .actions { display: flex; gap: 12px; margin-top: 16px; flex-wrap: wrap; }
+
+  details.how { border-top: 1px solid var(--line); padding: 12px 0; }
+  details.how:first-of-type { margin-top: 22px; }
+  details.how summary { cursor: pointer; font-family: var(--serif); font-weight: 400; font-size: 16px; }
+  details.how ol { font-size: 12px; color: var(--ink-soft); margin: 10px 0 0; padding-left: 22px; line-height: 1.7; }
+  .note { background: var(--tint); border-radius: 12px; padding: 14px 18px; font-size: 12px; color: var(--navy-deep); margin-top: 18px; }
+  .empty { text-align: center; padding: 60px 20px; }
+</style>
+</head>
+<body>
+<ol class="stepper" aria-label="Progress">
+  <li class="step done"><span class="num">✓</span><div><div class="st-title">Enter results</div><div class="st-desc">Type in races and candidates</div></div></li>
+  <li class="step active" id="step2Pill" aria-current="step"><span class="num">2</span><div><div class="st-title">Preview</div><div class="st-desc">Check how it looks</div></div></li>
+  <li class="step " id="step3Pill"><span class="num">3</span><div><div class="st-title">Get embed code</div><div class="st-desc">Copy &amp; paste into your site</div></div></li>
+</ol>
+
+<main>
+  <div class="panel empty" id="emptyPanel" style="display:none;">
+    <h2>We couldn't find any results to show</h2>
+    <p class="lead">This page needs results from Step 1. Please start there.</p>
+    <a class="btn primary big" href="index.html">Start over</a>
+  </div>
+
+  <div id="content" style="display:none;">
+    <section class="panel step-panel" id="previewPanel">
+      <div class="step-badge"><span class="n">2</span><span class="eyebrow">Preview</span></div>
+      <h2>Does this look right?</h2>
+      <p class="lead">This is exactly how the widget will appear on your site.</p>
+      <div class="toolbar">
+        <a class="btn" id="backBtn" href="index.html">← Back to edit</a>
+        <span class="spacer"></span>
+        <span class="seg" role="group" aria-label="Preview width">
+          <button class="btn active" data-width="100%">Desktop</button>
+          <button class="btn" data-width="600px">Tablet</button>
+          <button class="btn" data-width="360px">Phone</button>
+        </span>
+        <label for="heightInput">Height (px) <input type="number" id="heightInput" min="150" step="50" value="600"></label>
+      </div>
+      <div class="preview-frame-wrap">
+        <iframe id="previewFrame" title="Widget preview" width="100%" height="600"></iframe>
+      </div>
+      <p class="lead" style="margin-top:10px;">Content cut off or too much blank space? Change the height above.</p>
+      <div class="actions">
+        <a class="btn primary big" href="#embedPanel" id="looksGoodBtn">Looks good – get the embed code ↓</a>
+      </div>
+    </section>
+
+    <section class="panel step-panel" id="embedPanel">
+      <div class="step-badge"><span class="n">3</span><span class="eyebrow">Get embed code</span></div>
+      <h2>Copy this code into your website</h2>
+      <p class="lead">Paste it into a “Custom HTML” block on your page or post.</p>
+      <textarea id="embedSnippet" readonly spellcheck="false" aria-label="Embed code"></textarea>
+      <div class="warn" id="sizeWarning"></div>
+      <div class="actions">
+        <button class="btn primary big" id="copySnippetBtn">Copy embed code</button>
+      </div>
+
+      <details class="how">
+        <summary>How to paste it in WordPress</summary>
+        <ol>
+          <li>Open the post or page in the editor and click the <strong>+</strong> button to add a block.</li>
+          <li>Search for and choose <strong>Custom HTML</strong>.</li>
+          <li>Paste the code you copied, then click <strong>Preview</strong> to check it.</li>
+          <li>Publish or update the post.</li>
+        </ol>
+      </details>
+      <details class="how">
+        <summary>How to paste it in Ghost</summary>
+        <ol>
+          <li>In the editor, type <strong>/html</strong> on a new line (or click <strong>+</strong> and choose <strong>HTML</strong>).</li>
+          <li>Paste the code you copied into the HTML card.</li>
+          <li>Click outside the card to see the widget, then publish or update.</li>
+        </ol>
+      </details>
+      <details class="how">
+        <summary>Squarespace, Wix, Substack and others</summary>
+        <ol>
+          <li>Add an <strong>Embed</strong>, <strong>Code</strong> or <strong>Custom HTML</strong> block.</li>
+          <li>Choose the option to paste HTML or embed code (not a plain link).</li>
+          <li>Paste the code and save.</li>
+        </ol>
+      </details>
+
+      <div class="note"><strong>Results changing?</strong> The widget shows the numbers as of right now. When counts update, use <a href="index.html" id="editAgainLink">Back to edit</a> (or paste your old code into “Already made a widget? Edit it” on Step 1), then copy the new code and replace the old one on your site.</div>
+    </section>
+  </div>
+</main>
+
+<script src="shared.js"></script>
+<script>
+const params = readHash();
+const frame = document.getElementById("previewFrame");
+const heightInput = document.getElementById("heightInput");
+
+function embedUrl() {
+  const u = new URL("race-viewer.html", window.location.href);
+  u.searchParams.set("embed", "1");
+  u.searchParams.set("data", params.data);
+  u.searchParams.set("max", String(params.max));
+  if (!params.sort) u.searchParams.set("sort", "0");
+  return u.toString();
+}
+
+function currentHeight() {
+  return Math.max(150, parseInt(heightInput.value, 10) || 600);
+}
+
+function updateSnippet() {
+  const url = embedUrl();
+  const h = currentHeight();
+  frame.height = h;
+  document.getElementById("embedSnippet").value =
+    `<iframe src="${url}" width="100%" height="${h}" style="border:1px solid #d0d5dd;border-radius:8px;" loading="lazy"></iframe>`;
+
+  const warn = document.getElementById("sizeWarning");
+  if (url.length > 8000) {
+    warn.textContent = "This widget has a lot of data. Some websites may fail to load it. Try listing fewer races in one widget (make two widgets instead).";
+    warn.classList.add("show");
+  } else {
+    warn.classList.remove("show");
+  }
+}
+
+(function init() {
+  let valid = false;
+  if (params) {
+    try { csvToRaces(decodeCsvFromUrl(params.data)); valid = true; } catch (e) { /* invalid data */ }
+  }
+  if (!valid) {
+    document.getElementById("emptyPanel").style.display = "block";
+    document.getElementById("step2Pill").classList.remove("active");
+    return;
+  }
+
+  document.getElementById("content").style.display = "block";
+  const hash = window.location.hash;
+  document.getElementById("backBtn").href = "index.html" + hash;
+  document.getElementById("editAgainLink").href = "index.html" + hash;
+
+  frame.src = embedUrl();
+  updateSnippet();
+
+  heightInput.oninput = updateSnippet;
+
+  document.querySelectorAll("[data-width]").forEach(btn => {
+    btn.onclick = () => {
+      document.querySelectorAll("[data-width]").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      frame.style.width = btn.dataset.width;
+    };
+  });
+
+  document.getElementById("looksGoodBtn").onclick = () => {
+    document.getElementById("step2Pill").classList.replace("active", "done");
+    document.getElementById("step2Pill").querySelector(".num").textContent = "✓";
+    document.getElementById("step3Pill").classList.add("active");
+  };
+
+  document.getElementById("copySnippetBtn").onclick = (e) =>
+    copyToClipboard(document.getElementById("embedSnippet").value, e.currentTarget);
+})();
+</script>
+</body>
+</html>
