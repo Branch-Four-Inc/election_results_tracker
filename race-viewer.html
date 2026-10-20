@@ -140,6 +140,7 @@
   table.results tr.other td { color: #6b7280; font-style: italic; }
 
   .name-cell { font-weight: 600; }
+  .votes-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .share-cell { text-align: right; font-variant-numeric: tabular-nums; width: 130px; }
   .share-bar-wrap {
     display: flex;
@@ -569,6 +570,7 @@ function loadFromText(text) {
   const raceNameIdx = headers.indexOf("race_name");
   const incumbentIdx = headers.indexOf("incumbent");
   const pctCountedIdx = headers.indexOf("pct_counted");
+  const totalVotesIdx = headers.indexOf("total_votes");
 
   if (raceNameIdx === -1) {
     errorsEl.innerHTML = '<div class="err">CSV header missing required column: race_name</div>';
@@ -577,8 +579,8 @@ function loadFromText(text) {
     return;
   }
 
-  // Discover candidate column groups: candidate_N_name, candidate_N_vote_share, candidate_N_incumbent
-  const candidateGroups = []; // array of {nameIdx, voteShareIdx, incumbentIdx}
+  // Discover candidate column groups: candidate_N_name, candidate_N_vote_share, candidate_N_votes, candidate_N_incumbent
+  const candidateGroups = []; // array of {nameIdx, voteShareIdx, votesIdx, incumbentIdx}
   const candidateNums = new Set();
   headers.forEach((h) => {
     const match = h.match(/^candidate_(\d+)_name$/);
@@ -589,11 +591,13 @@ function loadFromText(text) {
   sortedNums.forEach(n => {
     const nameCol = headers.indexOf(`candidate_${n}_name`);
     const shareCol = headers.indexOf(`candidate_${n}_vote_share`);
+    const votesCol = headers.indexOf(`candidate_${n}_votes`);
     const incCol = headers.indexOf(`candidate_${n}_incumbent`);
     if (nameCol !== -1) {
       candidateGroups.push({
         nameIdx: nameCol,
         voteShareIdx: shareCol,
+        votesIdx: votesCol,
         incumbentIdx: incCol
       });
     }
@@ -616,6 +620,7 @@ function loadFromText(text) {
         race_name: fields[raceNameIdx] || "",
         incumbent: incumbentIdx !== -1 ? (fields[incumbentIdx] || "") : "",
         pct_counted: pctCountedIdx !== -1 ? (fields[pctCountedIdx] || "") : "",
+        total_votes: totalVotesIdx !== -1 ? (fields[totalVotesIdx] || "") : "",
         candidates: []
       };
 
@@ -623,17 +628,23 @@ function loadFromText(text) {
       if (race.pct_counted !== "" && !isNaN(Number(race.pct_counted))) {
         race.pct_counted = Number(race.pct_counted);
       }
+      // Convert total_votes to number if possible
+      if (race.total_votes !== "" && !isNaN(Number(race.total_votes))) {
+        race.total_votes = Number(race.total_votes);
+      }
 
       candidateGroups.forEach(group => {
         const name = group.nameIdx !== -1 && group.nameIdx < fields.length ? fields[group.nameIdx] : "";
         if (!name) return; // skip empty candidate slots
 
         const voteShareRaw = group.voteShareIdx !== -1 && group.voteShareIdx < fields.length ? fields[group.voteShareIdx] : "";
+        const votesRaw = group.votesIdx !== -1 && group.votesIdx < fields.length ? fields[group.votesIdx] : "";
         const incumbentRaw = group.incumbentIdx !== -1 && group.incumbentIdx < fields.length ? fields[group.incumbentIdx] : "";
 
         const candidate = {
           name: name,
           vote_share: voteShareRaw !== "" && !isNaN(Number(voteShareRaw)) ? Number(voteShareRaw) : voteShareRaw,
+          votes: votesRaw !== "" && !isNaN(Number(votesRaw)) ? Number(votesRaw) : votesRaw,
           incumbent: incumbentRaw.toLowerCase() === "true"
         };
 
@@ -691,9 +702,11 @@ function renderRacePanel(race, maxCandidates, sortByShare) {
   panel.className = "race-panel";
 
   const candidates = (race.candidates || []).map(c => ({ ...c }));
+  const hasVotes = race.total_votes !== "" && race.total_votes !== null && race.total_votes !== undefined;
 
   candidates.forEach(c => {
     c._share = computeShare(c);
+    c._votes = (c.votes !== null && c.votes !== undefined && c.votes !== "") ? Number(c.votes) : null;
     c._isIncumbent = !!c.incumbent || (!!race.incumbent && c.name === race.incumbent);
   });
 
@@ -720,8 +733,10 @@ function renderRacePanel(race, maxCandidates, sortByShare) {
   // table
   const table = document.createElement("table");
   table.className = "results";
+  const votesHeader = hasVotes ? '<th class="votes-cell">Votes</th>' : '';
   table.innerHTML = `<thead><tr>
     <th>Candidate</th>
+    ${votesHeader}
     <th class="share-cell">Vote Share</th>
   </tr></thead>`;
 
@@ -735,6 +750,13 @@ function renderRacePanel(race, maxCandidates, sortByShare) {
     nameTd.className = "name-cell";
     nameTd.textContent = (c.name || "(Unnamed candidate)") + (c._isIncumbent ? " *" : "");
     tr.appendChild(nameTd);
+
+    if (hasVotes) {
+      const votesTd = document.createElement("td");
+      votesTd.className = "votes-cell";
+      votesTd.textContent = c._votes === null ? "—" : c._votes.toLocaleString();
+      tr.appendChild(votesTd);
+    }
 
     const shareTd = document.createElement("td");
     shareTd.className = "share-cell";
@@ -768,6 +790,14 @@ function renderRacePanel(race, maxCandidates, sortByShare) {
     nameTd.textContent = `Other candidates (${rest.length})`;
     nameTd.title = rest.map(c => c.name).join(", ");
     tr.appendChild(nameTd);
+
+    if (hasVotes) {
+      const otherVotes = rest.reduce((sum, c) => sum + (c._votes || 0), 0);
+      const votesTd = document.createElement("td");
+      votesTd.className = "votes-cell";
+      votesTd.textContent = otherVotes.toLocaleString();
+      tr.appendChild(votesTd);
+    }
 
     const shareTd = document.createElement("td");
     shareTd.className = "share-cell";

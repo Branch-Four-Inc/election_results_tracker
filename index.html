@@ -27,7 +27,7 @@
   header p { margin: 4px 0 0; font-size: 12px; color: #9ca3af; }
 
   .instructions {
-    max-width: 1400px;
+    max-width: 800px;
     margin: 16px auto 0;
     padding: 0 20px;
   }
@@ -44,17 +44,76 @@
   .instructions-box ol { margin: 6px 0 0; padding-left: 18px; }
   .instructions-box li { margin-bottom: 4px; }
 
+  /* Step nav */
+  .step-nav {
+    max-width: 800px;
+    margin: 16px auto 0;
+    padding: 0 20px;
+  }
+  .step-nav-inner {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 18px;
+    display: flex;
+    justify-content: center;
+  }
+  .steps {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .step {
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: #fff;
+    padding: 7px 16px;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .step:hover { background: #f3f4f6; }
+  .step.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    font-weight: 600;
+  }
+  .step-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    font-size: 11px;
+    font-weight: 700;
+    background: #e5e7eb;
+    color: #4b5563;
+  }
+  .step.active .step-num { background: rgba(255,255,255,0.25); color: #fff; }
+  .step-arrow { color: #9ca3af; font-size: 16px; }
+
   main {
-    max-width: 1400px;
+    max-width: 800px;
     margin: 0 auto;
     padding: 20px;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 20px;
-    align-items: start;
   }
-  @media (max-width: 1000px) {
-    main { grid-template-columns: 1fr; }
+
+  /* Page toggling */
+  .page { display: none; }
+  .page.active { display: block; }
+  .page-content { display: flex; flex-direction: column; gap: 20px; }
+
+  /* Next / Back nav at bottom of each page */
+  .page-nav {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 4px;
   }
 
   .panel {
@@ -70,12 +129,11 @@
     align-items: center;
     justify-content: space-between;
   }
-  .col-left, .col-right { display: flex; flex-direction: column; gap: 20px; }
-  .col-right { position: sticky; top: 20px; }
+  /* (col-left / col-right removed — now using page-based layout) */
 
   .race-form-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     gap: 10px;
     margin-bottom: 12px;
   }
@@ -172,6 +230,7 @@
   table.results tr.leader td.name-cell { border-left: 3px solid var(--leader-border); }
   table.results tr.other td { color: #6b7280; font-style: italic; }
   .name-cell { font-weight: 600; }
+  .votes-cell { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .share-cell { text-align: right; font-variant-numeric: tabular-nums; width: 130px; }
   .share-bar-wrap { display: flex; align-items: center; gap: 8px; justify-content: flex-end; }
   .share-bar { flex: 1; max-width: 70px; height: 6px; background: #eef0f3; border-radius: 3px; overflow: hidden; }
@@ -221,67 +280,90 @@
     <ol>
       <li><strong>Import existing data</strong> — paste a previously generated embed link (or just its <code>data=</code> value) into the Import box to load races back into the form.</li>
       <li><strong>Enter data from scratch</strong> — click "+ Add Race", fill in race names and candidates, and adjust vote shares and % counted as results come in.</li>
-      <li><strong>Preview live</strong> — the right-hand panel updates as you type so you can see exactly how the results will look.</li>
-      <li><strong>Export an embed link</strong> — copy the generated <code>&lt;iframe&gt;</code> snippet from the Embed Link panel and paste it into any page. The data is encoded directly in the URL — no CSV file, hosting, or server needed.</li>
+      <li><strong>Preview &amp; export</strong> — click "Preview &amp; Embed →" to see how the results will look and copy the generated <code>&lt;iframe&gt;</code> snippet. The data is encoded directly in the URL — no CSV file, hosting, or server needed.</li>
     </ol>
   </div>
 </div>
 
-<main>
-  <div class="col-left">
-    <div class="panel">
-      <h2>
-        Import
-      </h2>
-      <p class="hint" style="margin-top:0;">Paste an existing embed link (or just its <code>data=</code> value) to load its races back into the form below.</p>
-      <div class="import-row">
-        <textarea id="importInput" placeholder='Paste embed link, e.g. race-viewer.html?embed=1&amp;data=...'></textarea>
-        <button class="btn primary" id="importBtn">Import</button>
-      </div>
-      <div class="import-status" id="importStatus"></div>
+<nav class="step-nav">
+  <div class="step-nav-inner">
+    <div class="steps">
+      <button class="step active" data-step="1"><span class="step-num">1</span> Import &amp; Edit</button>
+      <span class="step-arrow">→</span>
+      <button class="step" data-step="2"><span class="step-num">2</span> Preview &amp; Embed</button>
     </div>
+  </div>
+</nav>
 
-    <div class="panel">
-      <h2>
-        Races
-        <span>
-          <button class="btn primary" id="addRaceBtn">+ Add Race</button>
-        </span>
-      </h2>
-      <div id="racesContainer"></div>
-      <div class="empty-state" id="emptyState">No races yet. Click "+ Add Race" to start.</div>
+<main>
+  <!-- ── Page 1: Import & Edit ── -->
+  <div class="page active" id="page1">
+    <div class="page-content">
+      <div class="panel">
+        <h2>Import</h2>
+        <p class="hint" style="margin-top:0;">Paste an existing embed link (or just its <code>data=</code> value) to load its races back into the form below.</p>
+        <div class="import-row">
+          <textarea id="importInput" placeholder='Paste embed link, e.g. race-viewer.html?embed=1&amp;data=...'></textarea>
+          <button class="btn primary" id="importBtn">Import</button>
+        </div>
+        <div class="import-status" id="importStatus"></div>
+      </div>
+
+      <div class="panel">
+        <h2>
+          Races
+          <span>
+            <button class="btn primary" id="addRaceBtn">+ Add Race</button>
+          </span>
+        </h2>
+        <div id="racesContainer"></div>
+        <div class="empty-state" id="emptyState">No races yet. Click "+ Add Race" to start.</div>
+      </div>
+
+      <div class="page-nav">
+        <span></span>
+        <button class="btn primary" id="nextBtn">Preview &amp; Embed →</button>
+      </div>
     </div>
   </div>
 
-  <div class="col-right">
-    <div class="panel">
-      <h2>Live Preview</h2>
-      <div class="preview-toolbar">
-        <div class="group">
-          <label for="maxCandidates">Max candidates shown</label>
-          <input type="number" id="maxCandidates" min="1" value="3">
+  <!-- ── Page 2: Preview & Embed ── -->
+  <div class="page" id="page2">
+    <div class="page-content">
+      <div class="panel">
+        <h2>Live Preview</h2>
+        <div class="preview-toolbar">
+          <div class="group">
+            <label for="maxCandidates">Max candidates shown</label>
+            <input type="number" id="maxCandidates" min="1" value="3">
+          </div>
+          <div class="group">
+            <label for="sortToggle">
+              <input type="checkbox" id="sortToggle" checked style="vertical-align:middle;">
+              Sort by vote share
+            </label>
+          </div>
         </div>
-        <div class="group">
-          <label for="sortToggle">
-            <input type="checkbox" id="sortToggle" checked style="vertical-align:middle;">
-            Sort by vote share
-          </label>
+        <div id="previewGrid">
+          <div class="empty-state">Add a race to see a live preview.</div>
         </div>
       </div>
-      <div id="previewGrid">
-        <div class="empty-state">Add a race to see a live preview.</div>
-      </div>
-    </div>
 
-    <div class="panel">
-      <h2>Embed Link</h2>
-      <p class="hint" style="margin-top:0;">Generates a self-contained link to <code>race-viewer.html</code> with your race data encoded directly in the URL. No hosting, no CSV file, no CORS — just copy the snippet below into another page.</p>
-      <textarea id="embedSnippet" readonly spellcheck="false" placeholder="Add at least one race to generate an embed link..."></textarea>
-      <div class="row-actions" style="margin-top:8px;">
-        <button class="btn" id="embedCopySnippetBtn">Copy embed HTML</button>
-        <button class="btn" id="embedCopyLinkBtn">Copy link only</button>
+      <div class="panel">
+        <h2>Embed Link</h2>
+        <p class="hint" style="margin-top:0;">Generates a self-contained link to <code>race-viewer.html</code> with your race data encoded directly in the URL. No hosting, no CSV file, no CORS — just copy the snippet below into another page.</p>
+        <textarea id="embedSnippet" readonly spellcheck="false" placeholder="Add at least one race to generate an embed link..."></textarea>
+        <div class="row-actions" style="margin-top:8px;">
+          <button class="btn" id="embedCopySnippetBtn">Copy embed HTML</button>
+          <button class="btn" id="embedCopyLinkBtn">Copy link only</button>
+        </div>
+        <div class="size-warning" id="sizeWarning"></div>
       </div>
-      <div class="size-warning" id="sizeWarning"></div>
+
+      <div class="page-nav">
+        <button class="btn" id="backBtn">← Back to Edit</button>
+        <span></span>
+      </div>
     </div>
   </div>
 </main>
@@ -298,12 +380,38 @@ function newRace() {
     id: raceIdCounter,
     race_name: "",
     pct_counted: "",
+    total_votes: "",
     candidates: [newCandidate()]
   };
 }
 
 function newCandidate() {
-  return { name: "", vote_share: "", incumbent: false };
+  return { name: "", vote_share: "", votes: "", incumbent: false };
+}
+
+/* ───────────────────────── Vote sync helpers ───────────────────────── */
+
+/** When vote_share changes (or total_votes changes), recompute candidate votes. */
+function syncVotesFromShare(race, cand) {
+  const total = parseFloat(race.total_votes);
+  const share = parseFloat(cand.vote_share);
+  if (!isNaN(total) && total > 0 && !isNaN(share)) {
+    cand.votes = Math.round(total * share / 100);
+  }
+}
+
+/** When candidate votes change, recompute vote_share from votes / total_votes. */
+function syncShareFromVotes(race, cand) {
+  const total = parseFloat(race.total_votes);
+  const votes = parseFloat(cand.votes);
+  if (!isNaN(total) && total > 0 && !isNaN(votes)) {
+    cand.vote_share = parseFloat((votes / total * 100).toFixed(2));
+  }
+}
+
+/** Recompute all candidate votes for a race (called when total_votes changes). */
+function syncAllVotesFromShare(race) {
+  race.candidates.forEach(cand => syncVotesFromShare(race, cand));
 }
 
 /* ───────────────────────── Form rendering ───────────────────────── */
@@ -336,15 +444,26 @@ function renderForm() {
     grid.className = "race-form-grid";
     grid.appendChild(makeField("Race Name", race.race_name, (v) => { race.race_name = v; title.textContent = v || `Race #${rIdx + 1}`; refreshPreviewAndEmbed(); }, "text", "e.g. U.S. Senate - Ohio"));
     grid.appendChild(makeField("% of Vote Counted", race.pct_counted, (v) => { race.pct_counted = v; refreshPreviewAndEmbed(); }, "number", "e.g. 87"));
+    grid.appendChild(makeField("Total Votes", race.total_votes, (v) => {
+      race.total_votes = v;
+      syncAllVotesFromShare(race);
+      // Update all votes inputs in this race's candidate table
+      const votesInputs = card.querySelectorAll("input[data-field='votes']");
+      race.candidates.forEach((c, i) => {
+        if (votesInputs[i]) votesInputs[i].value = c.votes;
+      });
+      refreshPreviewAndEmbed();
+    }, "number", "e.g. 1500000"));
     card.appendChild(grid);
 
     const table = document.createElement("table");
     table.className = "candidates";
     const thead = document.createElement("thead");
     thead.innerHTML = `<tr>
-      <th style="width:44%">Candidate Name</th>
-      <th style="width:24%">Vote Share (%)</th>
-      <th style="width:20%">Incumbent</th>
+      <th style="width:36%">Candidate Name</th>
+      <th style="width:18%">Vote Share (%)</th>
+      <th style="width:18%">Votes</th>
+      <th style="width:16%">Incumbent</th>
       <th style="width:8%"></th>
     </tr>`;
     table.appendChild(thead);
@@ -369,9 +488,30 @@ function renderForm() {
       shareInput.value = cand.vote_share;
       shareInput.placeholder = "0.0";
       shareInput.className = "pct-input";
-      shareInput.oninput = (e) => { cand.vote_share = e.target.value; refreshPreviewAndEmbed(); };
+      shareInput.oninput = (e) => {
+        cand.vote_share = e.target.value;
+        syncVotesFromShare(race, cand);
+        votesInput.value = cand.votes;
+        refreshPreviewAndEmbed();
+      };
       shareTd.appendChild(shareInput);
       tr.appendChild(shareTd);
+
+      const votesTd = document.createElement("td");
+      const votesInput = document.createElement("input");
+      votesInput.type = "number";
+      votesInput.step = "1";
+      votesInput.value = cand.votes;
+      votesInput.placeholder = "0";
+      votesInput.setAttribute("data-field", "votes");
+      votesInput.oninput = (e) => {
+        cand.votes = e.target.value;
+        syncShareFromVotes(race, cand);
+        shareInput.value = cand.vote_share;
+        refreshPreviewAndEmbed();
+      };
+      votesTd.appendChild(votesInput);
+      tr.appendChild(votesTd);
 
       const incTd = document.createElement("td");
       incTd.className = "incumbent-cell";
@@ -462,9 +602,9 @@ function racesToCsv() {
   });
   if (maxCandidates === 0) maxCandidates = 1;
 
-  const headers = ["race_name", "incumbent", "pct_counted"];
+  const headers = ["race_name", "incumbent", "pct_counted", "total_votes"];
   for (let i = 1; i <= maxCandidates; i++) {
-    headers.push(`candidate_${i}_name`, `candidate_${i}_vote_share`, `candidate_${i}_incumbent`);
+    headers.push(`candidate_${i}_name`, `candidate_${i}_vote_share`, `candidate_${i}_votes`, `candidate_${i}_incumbent`);
   }
 
   const rows = cleanRaces.map(race => {
@@ -473,6 +613,7 @@ function racesToCsv() {
       .map(c => ({
         name: c.name.trim(),
         vote_share: c.vote_share === "" ? null : Number(c.vote_share),
+        votes: c.votes === "" ? null : Number(c.votes),
         incumbent: !!c.incumbent
       }));
     const incumbentCandidate = candidates.find(c => c.incumbent);
@@ -480,15 +621,17 @@ function racesToCsv() {
     const fields = [
       race.race_name.trim(),
       incumbentCandidate ? incumbentCandidate.name : "",
-      race.pct_counted === "" ? "" : Number(race.pct_counted)
+      race.pct_counted === "" ? "" : Number(race.pct_counted),
+      race.total_votes === "" ? "" : Number(race.total_votes)
     ];
     for (let i = 0; i < maxCandidates; i++) {
       if (i < candidates.length) {
         fields.push(candidates[i].name);
         fields.push(candidates[i].vote_share === null ? "" : candidates[i].vote_share);
+        fields.push(candidates[i].votes === null ? "" : candidates[i].votes);
         fields.push(candidates[i].incumbent ? "true" : "false");
       } else {
-        fields.push("", "", "");
+        fields.push("", "", "", "");
       }
     }
     return fields.map(csvEscape).join(",");
@@ -540,38 +683,59 @@ function csvToRaces(text) {
   const rows = parseCsv(text);
   if (rows.length < 2) throw new Error("CSV appears empty or has only a header row.");
 
-  const headerRow = rows[0].map(h => h.trim().toLowerCase());
-  const candidateCols = headerRow.length - 3;
-  const numCandidates = Math.max(0, Math.floor(candidateCols / 3));
+  const headers = rows[0].map(h => h.trim().toLowerCase());
+
+  // Discover fixed columns by name
+  const raceNameIdx = headers.indexOf("race_name");
+  const incumbentIdx = headers.indexOf("incumbent");
+  const pctCountedIdx = headers.indexOf("pct_counted");
+  const totalVotesIdx = headers.indexOf("total_votes");
+
+  // Discover candidate column groups by header pattern
+  const candidateNums = new Set();
+  headers.forEach(h => {
+    const m = h.match(/^candidate_(\d+)_name$/);
+    if (m) candidateNums.add(parseInt(m[1], 10));
+  });
+  const sortedNums = Array.from(candidateNums).sort((a, b) => a - b);
+  const candidateGroups = sortedNums.map(n => ({
+    nameIdx: headers.indexOf(`candidate_${n}_name`),
+    shareIdx: headers.indexOf(`candidate_${n}_vote_share`),
+    votesIdx: headers.indexOf(`candidate_${n}_votes`),
+    incIdx: headers.indexOf(`candidate_${n}_incumbent`)
+  }));
 
   const result = [];
   for (let r = 1; r < rows.length; r++) {
     const fields = rows[r];
     raceIdCounter += 1;
 
-    const raceName = fields[0] || "";
-    const incumbent = fields[1] || "";
-    const pctCounted = fields[2] || "";
+    const raceName = raceNameIdx !== -1 ? (fields[raceNameIdx] || "") : "";
+    const incumbent = incumbentIdx !== -1 ? (fields[incumbentIdx] || "") : "";
+    const pctCounted = pctCountedIdx !== -1 ? (fields[pctCountedIdx] || "") : "";
+    const totalVotes = totalVotesIdx !== -1 ? (fields[totalVotesIdx] || "") : "";
 
     const candidates = [];
-    for (let c = 0; c < numCandidates; c++) {
-      const baseIdx = 3 + c * 3;
-      const candName = (fields[baseIdx] || "").trim();
-      if (candName === "") continue;
-      const candShare = fields[baseIdx + 1] || "";
-      const candInc = (fields[baseIdx + 2] || "").toLowerCase() === "true";
+    candidateGroups.forEach(g => {
+      const candName = (g.nameIdx !== -1 && g.nameIdx < fields.length ? fields[g.nameIdx] : "").trim();
+      if (candName === "") return;
+      const candShare = g.shareIdx !== -1 && g.shareIdx < fields.length ? fields[g.shareIdx] : "";
+      const candVotes = g.votesIdx !== -1 && g.votesIdx < fields.length ? fields[g.votesIdx] : "";
+      const candInc = g.incIdx !== -1 && g.incIdx < fields.length ? fields[g.incIdx] : "";
       candidates.push({
         name: candName,
         vote_share: candShare === "" ? "" : Number(candShare),
-        incumbent: candInc || (!!incumbent && candName === incumbent)
+        votes: candVotes === "" ? "" : Number(candVotes),
+        incumbent: candInc.toLowerCase() === "true" || (!!incumbent && candName === incumbent)
       });
-    }
+    });
     if (candidates.length === 0) candidates.push(newCandidate());
 
     result.push({
       id: raceIdCounter,
       race_name: raceName,
       pct_counted: pctCounted === "" ? "" : Number(pctCounted),
+      total_votes: totalVotes === "" ? "" : Number(totalVotes),
       candidates
     });
   }
@@ -612,8 +776,11 @@ function renderRacePanel(race, maxCandidates, sortByShare) {
     .filter(c => c.name && c.name.trim() !== "")
     .map(c => ({ ...c }));
 
+  const hasVotes = race.total_votes !== "" && race.total_votes !== null && race.total_votes !== undefined;
+
   candidates.forEach(c => {
     c._share = computeShare(c);
+    c._votes = (c.votes !== null && c.votes !== undefined && c.votes !== "") ? Number(c.votes) : null;
     c._isIncumbent = !!c.incumbent;
   });
 
@@ -637,7 +804,8 @@ function renderRacePanel(race, maxCandidates, sortByShare) {
 
   const table = document.createElement("table");
   table.className = "results";
-  table.innerHTML = `<thead><tr><th>Candidate</th><th class="share-cell">Vote Share</th></tr></thead>`;
+  const votesHeader = hasVotes ? '<th class="votes-cell">Votes</th>' : '';
+  table.innerHTML = `<thead><tr><th>Candidate</th>${votesHeader}<th class="share-cell">Vote Share</th></tr></thead>`;
   const tbody = document.createElement("tbody");
 
   shown.forEach(c => {
@@ -648,6 +816,13 @@ function renderRacePanel(race, maxCandidates, sortByShare) {
     nameTd.className = "name-cell";
     nameTd.textContent = (c.name || "(Unnamed candidate)") + (c._isIncumbent ? " *" : "");
     tr.appendChild(nameTd);
+
+    if (hasVotes) {
+      const votesTd = document.createElement("td");
+      votesTd.className = "votes-cell";
+      votesTd.textContent = c._votes === null ? "—" : c._votes.toLocaleString();
+      tr.appendChild(votesTd);
+    }
 
     const shareTd = document.createElement("td");
     shareTd.className = "share-cell";
@@ -680,6 +855,14 @@ function renderRacePanel(race, maxCandidates, sortByShare) {
     nameTd.textContent = `Other candidates (${rest.length})`;
     nameTd.title = rest.map(c => c.name).join(", ");
     tr.appendChild(nameTd);
+
+    if (hasVotes) {
+      const otherVotes = rest.reduce((sum, c) => sum + (c._votes || 0), 0);
+      const votesTd = document.createElement("td");
+      votesTd.className = "votes-cell";
+      votesTd.textContent = otherVotes.toLocaleString();
+      tr.appendChild(votesTd);
+    }
 
     const shareTd = document.createElement("td");
     shareTd.className = "share-cell";
@@ -867,6 +1050,28 @@ document.getElementById("importBtn").onclick = () => {
     statusEl.textContent = "Could not import: " + err.message;
   }
 };
+
+/* ───────────────────────── Page navigation ───────────────────────── */
+
+function showPage(num) {
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.querySelectorAll(".step").forEach(s => s.classList.remove("active"));
+  const page = document.getElementById("page" + num);
+  if (page) page.classList.add("active");
+  const step = document.querySelector(`.step[data-step="${num}"]`);
+  if (step) step.classList.add("active");
+
+  // Refresh preview & embed when entering page 2 so it's up-to-date
+  if (num === 2) refreshPreviewAndEmbed();
+
+  window.scrollTo({ top: 0, behavior: "instant" });
+}
+
+document.getElementById("nextBtn").onclick = () => showPage(2);
+document.getElementById("backBtn").onclick = () => showPage(1);
+document.querySelectorAll(".step").forEach(btn => {
+  btn.onclick = () => showPage(Number(btn.dataset.step));
+});
 
 /* ───────────────────────── Init ───────────────────────── */
 
