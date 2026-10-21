@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Election Results Tracker – Steps 2 &amp; 3: Preview and embed</title>
+<title>Election Results Widget – Steps 2 &amp; 3: Preview and embed</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -62,7 +62,7 @@
     <section class="panel step-panel" id="previewPanel">
       <div class="step-badge"><span class="n">2</span><span class="eyebrow">Preview</span></div>
       <h2>Does this look right?</h2>
-      <p class="lead">This is how the tracker will appear on your site.</p>
+      <p class="lead">This is how the widget will appear on your site.</p>
       <div class="toolbar">
         <a class="btn" id="backBtn" href="index.html">← Back to edit</a>
         <span class="spacer"></span>
@@ -98,7 +98,7 @@
           <li>Open the post or page in the editor and click the <strong>+</strong> button to add a block.</li>
           <li>Search for and choose <strong>Custom HTML</strong>.</li>
           <li>Paste the code you copied, then click <strong>Preview</strong> to check it.</li>
-          <li>Use the <strong>Columns</strong> block to show the tracker in more than one column.</li>
+          <li>Use the <strong>Columns</strong> block to show the widget in more than one column.</li>
           <li>Publish or update the post.</li>
         </ol>
       </details>
@@ -107,7 +107,7 @@
         <ol>
           <li>In the editor, type <strong>/html</strong> on a new line (or click <strong>+</strong> and choose <strong>HTML</strong>).</li>
           <li>Paste the code you copied into the HTML card.</li>
-          <li>Click outside the card to see the tracker, then publish or update.</li>
+          <li>Click outside the card to see the widget, then publish or update.</li>
         </ol>
       </details>
       <details class="how">
@@ -119,7 +119,7 @@
         </ol>
       </details>
 
-      <div class="note"><strong>Results changing?</strong> The tracker shows the numbers as of right now. When counts update, use <a href="index.html" id="editAgainLink">Back to edit</a> (or paste your old code into “Already made a tracker?" in Step 1), update the results, and use the new embed code on your site.</div>
+      <div class="note"><strong>Results changing?</strong> The widget shows the numbers as of right now. When counts update, use <a href="index.html" id="editAgainLink">Back to edit</a> (or paste your old code into “Already made a widget?" in Step 1), update the results, and use the new embed code on your site.</div>
     </section>
   </div>
 </main>
@@ -157,7 +157,7 @@ function updateSnippet() {
 
   const warn = document.getElementById("sizeWarning");
   if (url.length > 8000) {
-    warn.textContent = "This tracker has a lot of data. Some websites may fail to load it. Try listing fewer races in one tracker (make two trackers instead).";
+    warn.textContent = "This widget has a lot of data. Some websites may fail to load it. Try listing fewer races in one widget (make two widgets instead).";
     warn.classList.add("show");
   } else {
     warn.classList.remove("show");

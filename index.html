@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Election Results Tracker – Step 1: Enter results</title>
+<title>Election Results Widget – Step 1: Enter results</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -71,7 +71,7 @@
       <div class="panel-top"><div class="step-badge"><span class="n">1</span><span class="eyebrow">Enter results</span></div>
       <button class="btn secondary" id="addRaceBtn">+ Add another race</button></div>
       <h2>Enter election results</h2>
-      <p class="lead">Add each race you want to show, with its candidates and their share of the vote. When you're done, click <strong>Preview my tracker</strong> at the bottom.</p>
+      <p class="lead">Add each race you want to show, with its candidates and their share of the vote. When you're done, click <strong>Preview my widget</strong> at the bottom.</p>
       <p class="auto-note">Tip: Enter the Number of Votes Counted and Votes for each candidate, and the Candidates' Vote Share (%) populates automatically.</p>
       <div id="racesContainer"></div>
     </div>
@@ -92,7 +92,7 @@
       </div>
     </div>
     <details id="importDetails">
-      <summary>Already made a tracker? Edit it</summary>
+      <summary>Already made a widget? Edit it</summary>
       <p>Paste the embed code or link you got earlier and we'll load its results back into the form.</p>
       <label for="importInput" class="sr-only" style="position:absolute;left:-9999px;">Existing embed code or link</label>
       <textarea id="importInput" placeholder="Paste your embed code or link here"></textarea>
@@ -105,7 +105,7 @@
 <div class="action-bar">
   <span class="hint">Next: you will see a preview before getting your code.</span>
   <span class="msg" id="formMsg" role="alert"></span>
-  <button class="btn primary big" id="previewBtn">Preview my tracker →</button>
+  <button class="btn primary big" id="previewBtn">Preview my widget →</button>
 </div>
 
 <script src="shared.js"></script>
@@ -394,7 +394,7 @@ document.getElementById("importBtn").onclick = () => {
     statusEl.textContent = `Loaded ${n} race${n === 1 ? "" : "s"}. Scroll up to edit.`;
   } catch (err) {
     statusEl.className = "import-status error";
-    statusEl.textContent = "That doesn't look like a tracker from this tool, so we couldn't load it.";
+    statusEl.textContent = "That doesn't look like a widget from this tool, so we couldn't load it.";
   }
 };
 

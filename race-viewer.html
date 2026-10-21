@@ -839,8 +839,8 @@ function renderRacePanel(race, maxCandidates, sortByShare) {
   const pctLabel = document.createElement("div");
   pctLabel.className = "meta";
   const totalVotes = Number(race.total_votes);
-  const totalLabel = totalVotes > 0 ? `Total votes counted: ${totalVotes.toLocaleString()}` : "";
-  pctLabel.innerHTML = `<span>${totalLabel}</span><span>${pct} counted</span>`;
+  const totalLabel = totalVotes > 0 ? `Total Votes Counted: ${totalVotes.toLocaleString()}` : "";
+  pctLabel.innerHTML = `<span>${totalLabel}</span><span>${pct} Counted</span>`;
   footer.appendChild(pctLabel);
 
   const bar = document.createElement("div");
